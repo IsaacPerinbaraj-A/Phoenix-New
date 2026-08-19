@@ -50,15 +50,21 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
         1. Lesion photograph <span className="font-normal text-slate-500">(optional but recommended)</span>
       </h2>
 
-      <ul className="list-disc pl-5 text-sm text-slate-600">
-        <li>Use good daylight.</li>
-        <li>Keep the lesion centred.</li>
-        <li>Hold the phone steady to avoid blur.</li>
-        <li>Photograph from roughly a consistent distance.</li>
-      </ul>
-      <p className="text-xs text-slate-500">
-        Following these tips helps, but does not guarantee the photo can be assessed.
-      </p>
+      <details className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-slate-600">
+          📋 Tips for a usable photo
+        </summary>
+        <ul className="mt-2 list-disc pl-5 text-sm text-slate-600">
+          <li>Use good daylight.</li>
+          <li>Keep the lesion centred.</li>
+          <li>Hold the phone steady to avoid blur.</li>
+          <li>Photograph from roughly a consistent distance.</li>
+        </ul>
+        <p className="mt-1 text-xs text-slate-500">
+          Following these tips helps, but does not guarantee the photo can be
+          assessed.
+        </p>
+      </details>
 
       <input
         ref={inputRef}

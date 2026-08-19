@@ -1,12 +1,79 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getHealth, submitCase } from "../api.js";
 import { getUser } from "../auth.js";
 import AgentTrace from "../components/AgentTrace.jsx";
 import Disclaimer from "../components/Disclaimer.jsx";
 import PhotoUpload from "../components/PhotoUpload.jsx";
-import Questionnaire from "../components/Questionnaire.jsx";
+import Questionnaire, { BODY_SITES } from "../components/Questionnaire.jsx";
 import ResultCard from "../components/ResultCard.jsx";
+
+function CaseSummary({ questionnaire, imageFile, phase, onReset }) {
+  const site =
+    BODY_SITES.find(([v]) => v === questionnaire.body_site)?.[1] ||
+    questionnaire.body_site;
+  const flags = [
+    questionnaire.changed_recently && "Changed recently",
+    questionnaire.bleeding && "Bleeding",
+    questionnaire.itching && "Itching",
+    questionnaire.family_history_melanoma && "Family history of melanoma",
+  ].filter(Boolean);
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Case being assessed
+      </p>
+      <dl className="mt-2 space-y-1 text-sm text-slate-700">
+        <div className="flex justify-between gap-2">
+          <dt className="text-slate-500">Photograph</dt>
+          <dd className="font-medium">{imageFile ? "Provided" : "None"}</dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt className="text-slate-500">Age</dt>
+          <dd className="font-medium">{questionnaire.age} years</dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt className="text-slate-500">Duration</dt>
+          <dd className="font-medium">{questionnaire.duration_months} months</dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt className="text-slate-500">Body site</dt>
+          <dd className="font-medium">{site}</dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt className="text-slate-500">Skin type</dt>
+          <dd className="font-medium">Fitzpatrick {questionnaire.fitzpatrick}</dd>
+        </div>
+      </dl>
+      {flags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {flags.map((f) => (
+            <span
+              key={f}
+              className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900"
+            >
+              {f}
+            </span>
+          ))}
+        </div>
+      )}
+      {phase === "running" ? (
+        <p className="mt-3 text-sm font-medium text-blue-600">
+          <span className="animate-pulse">●</span> Assessing…
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={onReset}
+          className="mt-3 min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-700 hover:bg-slate-50"
+        >
+          ← Start a new case
+        </button>
+      )}
+    </div>
+  );
+}
 
 const EMPTY_QUESTIONNAIRE = {
   age: "",
@@ -29,10 +96,19 @@ export default function AssessPage() {
   const [error, setError] = useState(null);
   const [health, setHealth] = useState(null);
   const user = getUser();
+  const pipelineRef = useRef(null);
 
   useEffect(() => {
     getHealth().then(setHealth).catch(() => setHealth(null));
   }, []);
+
+  // On small screens the pipeline sits below the form: bring it into view
+  // the moment an assessment starts so the user sees something happening.
+  useEffect(() => {
+    if (phase === "running" && window.matchMedia("(max-width: 1023px)").matches) {
+      pipelineRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [phase]);
 
   const validate = () => {
     const age = Number(questionnaire.age);
@@ -134,53 +210,44 @@ export default function AssessPage() {
       )}
 
       <div className="mt-6 grid gap-8 lg:grid-cols-5">
-        {/* Left: the case form */}
+        {/* Left: the case form, replaced by a compact summary once running */}
         <div className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <fieldset disabled={phase === "running"} className="space-y-6">
+          {phase === "form" ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
               <PhotoUpload
                 file={imageFile}
                 onChange={setImageFile}
                 onQualityWarning={setPhotoLooksBlurry}
               />
               <Questionnaire value={questionnaire} onChange={setQuestionnaire} />
-            </fieldset>
 
-            {error && phase === "form" && (
-              <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-                Error: {error}
-              </p>
-            )}
+              {error && (
+                <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+                  Error: {error}
+                </p>
+              )}
 
-            {phase === "form" && (
               <button
                 type="submit"
                 className="min-h-[48px] w-full rounded-xl bg-blue-600 px-4 py-3 text-lg font-bold text-white hover:bg-blue-700"
               >
                 Assess this case
               </button>
-            )}
-            {(phase === "done" || phase === "error") && (
-              <button
-                type="button"
-                onClick={reset}
-                className="min-h-[48px] w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Start a new case
-              </button>
-            )}
-            {phase === "running" && (
-              <p className="text-center text-sm font-medium text-slate-500">
-                Assessing… watch the pipeline on the right.
-              </p>
-            )}
-          </form>
+            </form>
+          ) : (
+            <CaseSummary
+              questionnaire={questionnaire}
+              imageFile={imageFile}
+              phase={phase}
+              onReset={reset}
+            />
+          )}
         </div>
 
         {/* Right: live pipeline + result */}
-        <div className="space-y-6 lg:col-span-3">
+        <div ref={pipelineRef} className="scroll-mt-20 space-y-6 lg:col-span-3">
           {phase === "form" && (
-            <div className="flex h-full min-h-[300px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 p-8 text-center text-slate-400">
+            <div className="hidden h-full min-h-[300px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 p-8 text-center text-slate-400 lg:flex">
               <div>
                 <p className="text-4xl" aria-hidden="true">🩺</p>
                 <p className="mt-2 font-medium">

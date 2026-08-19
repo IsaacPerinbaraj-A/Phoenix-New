@@ -92,6 +92,7 @@ def test_assess_without_image_streams_full_trace():
     assert "R8_LLM_FAILED" in result["safety_triggers"]
     assert result["instruction"]
     assert result["disclaimer"]
+    assert result["image_provided"] is False
 
 
 def test_assess_with_blurry_image_skips_vision():

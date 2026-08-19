@@ -1,4 +1,4 @@
-const BODY_SITES = [
+export const BODY_SITES = [
   ["head_neck", "Head / neck"],
   ["face", "Face"],
   ["trunk", "Chest / stomach"],

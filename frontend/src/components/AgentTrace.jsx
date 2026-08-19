@@ -99,7 +99,10 @@ export default function AgentTrace({ events, running }) {
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span aria-hidden="true" className="text-lg">
+                  <span
+                    aria-hidden="true"
+                    className={`text-lg ${status === "running" ? "animate-pulse" : ""}`}
+                  >
                     {STATUS_ICON[status]}
                   </span>
                   <span className="font-semibold">{name}</span>

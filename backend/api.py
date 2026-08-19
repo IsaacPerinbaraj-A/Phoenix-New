@@ -170,6 +170,7 @@ def _result_contract(state_fields: dict[str, Any]) -> dict[str, Any]:
     """Shape the accumulated state into the public result contract."""
     return {
         "case_id": state_fields.get("case_id"),
+        "image_provided": state_fields.get("image_path") is not None,
         "image_ok": state_fields.get("image_ok", False),
         "quality_note": state_fields.get("quality_note"),
         "vision": _dump(state_fields.get("vision")),
@@ -299,6 +300,7 @@ def assess(
     def event_stream():
         merged: dict[str, Any] = initial.model_dump()
         started = time.perf_counter()
+        last_event_at = started
         visited: list[str] = []
         try:
             for update in graph.stream(
@@ -314,7 +316,10 @@ def assess(
                         {k: v for k, v in fields.items()}
                     )
                     now = time.perf_counter()
-                    elapsed_ms = int((now - started) * 1000)
+                    # Per-agent duration (time since the previous event),
+                    # not cumulative time since the request started.
+                    elapsed_ms = int((now - last_event_at) * 1000)
+                    last_event_at = now
 
                     status = "completed"
                     if agent_name == "reasoning" and fields.get("reasoning") is None:
