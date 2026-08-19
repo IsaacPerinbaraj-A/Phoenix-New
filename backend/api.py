@@ -129,8 +129,8 @@ def _sse(payload: dict[str, Any]) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
-def _save_upload(image: UploadFile, case_id: str) -> str:
-    """Store the upload under a server-generated name; validate controls."""
+def _read_validated_upload(image: UploadFile) -> tuple[bytes, str]:
+    """Validate type/size controls and return (bytes, extension)."""
     original = Path(image.filename or "upload")
     ext = original.suffix.lower()
     if ext not in ALLOWED_UPLOAD_EXTENSIONS:
@@ -154,6 +154,12 @@ def _save_upload(image: UploadFile, case_id: str) -> str:
         )
     if not data:
         raise HTTPException(status_code=400, detail="Empty image upload.")
+    return data, ext
+
+
+def _save_upload(image: UploadFile, case_id: str) -> str:
+    """Store the upload under a server-generated name; validate controls."""
+    data, ext = _read_validated_upload(image)
     ensure_runtime_dirs()
     dest = UPLOAD_DIR / f"{case_id}{ext}"
     dest.write_bytes(data)
@@ -235,6 +241,27 @@ def logout(authorization: Optional[str] = Header(default=None)):
 def me(authorization: Optional[str] = Header(default=None)):
     username = _user_from_header(authorization)
     return {"username": username, "role": db.get_user_role(username)}
+
+
+@app.post("/api/assess/precheck")
+def precheck_image(image: UploadFile = File(...)):
+    """Run the EXACT ingestion quality gate on a photo before submission,
+    so the worker can retake it early. Nothing is stored. The pipeline's
+    own ingestion agent remains the authoritative gate at assess time."""
+    data, _ext = _read_validated_upload(image)
+    from agents.ingestion import cv2_available, evaluate_image
+
+    if not cv2_available():
+        return {"checked": False, "image_ok": None, "quality_note": None}
+    try:
+        import cv2  # type: ignore
+        import numpy as np  # type: ignore
+
+        img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+    except Exception:
+        img = None
+    ok, note = evaluate_image(img)
+    return {"checked": True, "image_ok": ok, "quality_note": note}
 
 
 @app.post("/api/assess")

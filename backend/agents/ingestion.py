@@ -23,6 +23,30 @@ except Exception:  # pragma: no cover - import environment specific
     _CV2_AVAILABLE = False
 
 
+def evaluate_image(img) -> tuple[bool, str | None]:
+    """THE quality gate: deterministic blur/brightness checks on a decoded
+    image. Used by the ingestion agent and by the API precheck endpoint so
+    the early warning shown to the worker always matches the pipeline."""
+    if img is None or getattr(img, "size", 0) == 0:
+        return False, "Photograph could not be read. Please retake it."
+    try:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        blur = cv2.Laplacian(gray, cv2.CV_64F).var()
+        brightness = float(img.mean())
+    except Exception:
+        return False, "Photograph could not be analysed."
+
+    if blur < BLUR_THRESHOLD:
+        return False, "Photograph is too blurry."
+    if not (MIN_BRIGHTNESS < brightness < MAX_BRIGHTNESS):
+        return False, "Lighting is too dark or too bright."
+    return True, None
+
+
+def cv2_available() -> bool:
+    return _CV2_AVAILABLE
+
+
 def ingestion_agent(state: CaseState) -> CaseState:
     """Set `image_ok` and `quality_note` from deterministic image checks."""
     if not state.image_path:
@@ -43,31 +67,11 @@ def ingestion_agent(state: CaseState) -> CaseState:
     except Exception:
         img = None
 
-    if img is None or img.size == 0:
-        state.image_ok = False
-        state.quality_note = "Photograph could not be read. Please retake it."
-        return state
-
-    try:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        blur = cv2.Laplacian(gray, cv2.CV_64F).var()
-        brightness = float(img.mean())
-    except Exception:
-        logger.warning("Quality metrics failed for case %s", state.case_id)
-        state.image_ok = False
-        state.quality_note = "Photograph could not be analysed."
-        return state
-
-    if blur < BLUR_THRESHOLD:
-        state.image_ok = False
-        state.quality_note = "Photograph is too blurry."
-    elif not (MIN_BRIGHTNESS < brightness < MAX_BRIGHTNESS):
-        state.image_ok = False
-        state.quality_note = "Lighting is too dark or too bright."
-    else:
-        state.image_ok = True
-        state.quality_note = None
-
+    state.image_ok, state.quality_note = evaluate_image(img)
+    if not state.image_ok:
+        logger.info(
+            "Image rejected for case %s: %s", state.case_id, state.quality_note
+        )
     return state
 
 

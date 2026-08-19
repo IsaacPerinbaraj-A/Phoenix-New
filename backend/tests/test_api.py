@@ -137,6 +137,34 @@ def test_invalid_questionnaire_rejected():
     assert resp.status_code == 422
 
 
+def test_precheck_rejects_blurry_and_accepts_sharp():
+    resp = client.post(
+        "/api/assess/precheck",
+        files={"image": ("photo.png", io.BytesIO(_png_bytes(blurry=True)), "image/png")},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["checked"] is True
+    assert body["image_ok"] is False
+    assert body["quality_note"]
+
+    resp = client.post(
+        "/api/assess/precheck",
+        files={"image": ("photo.png", io.BytesIO(_png_bytes(blurry=False)), "image/png")},
+    )
+    body = resp.json()
+    assert body["image_ok"] is True
+    assert body["quality_note"] is None
+
+
+def test_precheck_validates_upload_type():
+    resp = client.post(
+        "/api/assess/precheck",
+        files={"image": ("evil.exe", io.BytesIO(b"MZ"), "application/octet-stream")},
+    )
+    assert resp.status_code == 400
+
+
 def test_unsupported_upload_type_rejected():
     resp = client.post(
         "/api/assess",

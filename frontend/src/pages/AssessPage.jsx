@@ -22,7 +22,7 @@ const EMPTY_QUESTIONNAIRE = {
 export default function AssessPage() {
   const [phase, setPhase] = useState("form"); // form | running | done | error
   const [imageFile, setImageFile] = useState(null);
-  const [photoLooksBlurry, setPhotoLooksBlurry] = useState(false);
+  const [photoLooksBlurry, setPhotoLooksBlurry] = useState(null);
   const [questionnaire, setQuestionnaire] = useState(EMPTY_QUESTIONNAIRE);
   const [events, setEvents] = useState([]);
   const [result, setResult] = useState(null);
@@ -51,12 +51,13 @@ export default function AssessPage() {
       setError(problem);
       return;
     }
-    // The photo pre-check flagged blur: give the worker a real chance to
-    // retake before running an answers-only assessment. Never a hard block —
-    // a case must always be assessable even when a better photo is impossible.
+    // The server precheck rejected the photo: give the worker a real chance
+    // to retake before running an answers-only assessment. Never a hard
+    // block — a case must always be assessable even when a better photo is
+    // impossible.
     if (imageFile && photoLooksBlurry) {
       const proceed = window.confirm(
-        "The selected photo looks blurry and will likely be rejected.\n\n" +
+        `The photo will be rejected: ${photoLooksBlurry}\n\n` +
           "OK — assess anyway (the result will use the answers only)\n" +
           "Cancel — go back and retake the photo"
       );

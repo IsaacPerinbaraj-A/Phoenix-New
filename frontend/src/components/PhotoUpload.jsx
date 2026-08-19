@@ -1,66 +1,42 @@
 import { useRef, useState } from "react";
 
-// Quick client-side sharpness estimate (variance of a 4-neighbour
-// Laplacian on a downscaled grayscale copy). A heuristic warning only —
-// the server-side ingestion agent remains the authoritative quality gate.
-const CLIENT_BLUR_THRESHOLD = 25;
-
-async function estimateSharpness(f) {
-  const bitmap = await createImageBitmap(f);
-  const width = 256;
-  const height = Math.max(
-    1,
-    Math.round((bitmap.height / bitmap.width) * width)
-  );
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(bitmap, 0, 0, width, height);
-  const { data } = ctx.getImageData(0, 0, width, height);
-
-  const gray = new Float32Array(width * height);
-  for (let i = 0; i < width * height; i++) {
-    gray[i] =
-      0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
-  }
-  let sum = 0;
-  let sumSq = 0;
-  let n = 0;
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const i = y * width + x;
-      const lap =
-        gray[i - 1] + gray[i + 1] + gray[i - width] + gray[i + width] -
-        4 * gray[i];
-      sum += lap;
-      sumSq += lap * lap;
-      n++;
-    }
-  }
-  const mean = sum / n;
-  return sumSq / n - mean * mean; // variance
+// Ask the backend to run the EXACT ingestion quality gate on the photo,
+// so the early warning always matches what the pipeline will decide.
+async function precheckPhoto(f) {
+  const form = new FormData();
+  form.append("image", f);
+  const resp = await fetch("/api/assess/precheck", {
+    method: "POST",
+    body: form,
+  });
+  if (!resp.ok) return null;
+  return resp.json();
 }
 
 export default function PhotoUpload({ file, onChange, onQualityWarning }) {
   const inputRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [looksBlurry, setLooksBlurry] = useState(false);
+  const [qualityNote, setQualityNote] = useState(null);
+  const [checking, setChecking] = useState(false);
 
   const handleFile = async (f) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setLooksBlurry(false);
-    onQualityWarning?.(false);
+    setQualityNote(null);
+    onQualityWarning?.(null);
     if (f) {
       setPreviewUrl(URL.createObjectURL(f));
       onChange(f);
+      setChecking(true);
       try {
-        const sharpness = await estimateSharpness(f);
-        const blurry = sharpness < CLIENT_BLUR_THRESHOLD;
-        setLooksBlurry(blurry);
-        onQualityWarning?.(blurry);
+        const check = await precheckPhoto(f);
+        if (check?.checked && check.image_ok === false) {
+          setQualityNote(check.quality_note || "Photograph is not usable.");
+          onQualityWarning?.(check.quality_note || "Photograph is not usable.");
+        }
       } catch {
-        // Estimation is best-effort; the server gate still applies.
+        // Precheck is best-effort; the pipeline gate still applies.
+      } finally {
+        setChecking(false);
       }
     } else {
       setPreviewUrl(null);
@@ -109,16 +85,18 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
             alt="Preview of the uploaded lesion photograph"
             className="max-h-64 w-full rounded-xl border border-slate-200 object-contain"
           />
-          {looksBlurry && (
+          {checking && (
+            <p className="text-xs text-slate-500">Checking photo quality…</p>
+          )}
+          {qualityNote && (
             <div
               role="alert"
               className="rounded-lg border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-900"
             >
-              <p className="font-bold">⚠️ This photo looks blurry.</p>
+              <p className="font-bold">⚠️ This photo will be rejected: {qualityNote}</p>
               <p className="mt-0.5">
-                It will likely be rejected and the assessment would then use
-                the answers only. Please retake it — hold the phone steady in
-                good light.
+                The assessment would then use the answers only. Please retake
+                the photo — hold the phone steady in good light.
               </p>
             </div>
           )}
