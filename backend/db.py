@@ -134,6 +134,33 @@ def list_cases(
     return [dict(r) for r in rows]
 
 
+def list_case_payloads(limit: int = 500) -> list[dict[str, Any]]:
+    """Full stored payloads, newest first — used by the clinician queue
+    and the stats endpoint."""
+    with _connect() as conn:
+        _ensure_schema(conn)
+        rows = conn.execute(
+            "SELECT case_id, created_at, username, payload FROM cases "
+            "ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        try:
+            payload = json.loads(r["payload"])
+        except (TypeError, ValueError):
+            continue
+        out.append(
+            {
+                "case_id": r["case_id"],
+                "created_at": r["created_at"],
+                "username": r["username"],
+                "payload": payload,
+            }
+        )
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Users and tokens (prototype auth)
 # ---------------------------------------------------------------------------

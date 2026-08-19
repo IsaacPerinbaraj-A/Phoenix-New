@@ -44,6 +44,7 @@ export default function Layout() {
             <NavItem to="/">Home</NavItem>
             <NavItem to="/assess">New Assessment</NavItem>
             <NavItem to="/history">History</NavItem>
+            <NavItem to="/clinician">Clinician</NavItem>
           </nav>
 
           <div className="flex items-center gap-2">

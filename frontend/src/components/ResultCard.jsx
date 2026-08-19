@@ -33,10 +33,30 @@ const BANDS = {
   },
 };
 
+function SignalBar({ label, value, tone }) {
+  if (value === null || value === undefined) return null;
+  const width = Math.min(Math.max(value, 0), 1) * 100;
+  return (
+    <div className="flex-1 basis-40">
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span>{label}</span>
+        <span className="font-semibold text-slate-700">{(value * 100).toFixed(0)}%</span>
+      </div>
+      <div className="mt-1 h-2 rounded-full bg-slate-200">
+        <div
+          className={`h-2 rounded-full ${tone || "bg-blue-500"}`}
+          style={{ width: `${width}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function ResultCard({ result }) {
   if (!result?.final_band) return null;
   const band = BANDS[result.final_band] || BANDS.INCONCLUSIVE;
   const advisory = result.reasoning?.suggested_band;
+  const clinician = result.clinician;
 
   return (
     <section aria-labelledby="result-heading" className="space-y-4">
@@ -86,6 +106,70 @@ export default function ResultCard({ result }) {
         </div>
       )}
 
+      {/* 4b. Model signals — the numbers that matter, at a glance */}
+      {(result.vision || result.history) && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Model signals
+          </p>
+          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-3">
+            {result.vision && (
+              <>
+                <SignalBar
+                  label="Vision confidence"
+                  value={result.vision.confidence}
+                  tone="bg-blue-500"
+                />
+                <SignalBar
+                  label="Malignant-group probability"
+                  value={result.vision.malignant_p}
+                  tone="bg-red-500"
+                />
+              </>
+            )}
+            {result.history && (
+              <SignalBar
+                label="History risk score"
+                value={result.history.risk_score}
+                tone="bg-orange-500"
+              />
+            )}
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
+            Evidence inputs only — the final band above is decided by the
+            deterministic safety rules, not by these numbers alone.
+          </p>
+        </div>
+      )}
+
+      {/* 4c. Clinician referral recommendation — deterministic templates */}
+      {clinician && (
+        <div className="rounded-xl border-2 border-blue-300 bg-blue-50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+              Clinician referral recommendation
+            </p>
+            <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
+              Priority {clinician.priority_score}/100
+            </span>
+          </div>
+          <p className="mt-2 font-medium text-slate-800">{clinician.referral}</p>
+          {clinician.basis?.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {clinician.basis.map((b) => (
+                <span
+                  key={b}
+                  className="rounded-full border border-blue-200 bg-white px-2.5 py-0.5 text-xs text-slate-600"
+                >
+                  {b}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="mt-2 text-xs text-blue-700/70">{clinician.note}</p>
+        </div>
+      )}
+
       {/* 5. Supporting explanation — clearly subordinate to the decision */}
       {result.reasoning && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -121,12 +205,23 @@ export default function ResultCard({ result }) {
                 Malignant-group probability: {result.vision.malignant_p.toFixed(3)} ·
                 Confidence: {result.vision.confidence.toFixed(3)}
               </p>
-              <ul className="mt-1 grid grid-cols-2 gap-x-4 sm:grid-cols-3">
-                {Object.entries(result.vision.probs).map(([cls, p]) => (
-                  <li key={cls}>
-                    {cls}: {Number(p).toFixed(3)}
-                  </li>
-                ))}
+              <ul className="mt-2 space-y-1.5">
+                {Object.entries(result.vision.probs)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([cls, p]) => (
+                    <li key={cls} className="flex items-center gap-2">
+                      <span className="w-12 font-mono text-xs text-slate-500">{cls}</span>
+                      <div className="h-2 flex-1 rounded-full bg-slate-200">
+                        <div
+                          className="h-2 rounded-full bg-blue-500"
+                          style={{ width: `${Math.min(Number(p) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <span className="w-12 text-right text-xs text-slate-600">
+                        {(Number(p) * 100).toFixed(1)}%
+                      </span>
+                    </li>
+                  ))}
               </ul>
               {result.vision.gradcam_path && (
                 <img

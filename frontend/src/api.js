@@ -33,6 +33,21 @@ export async function getCase(caseId) {
   return jsonOrThrow(resp, "Case not found");
 }
 
+export async function getClinicianQueue() {
+  const resp = await fetch("/api/clinician/queue");
+  return jsonOrThrow(resp, "Failed to load the clinician queue");
+}
+
+export async function getStats() {
+  const resp = await fetch("/api/stats");
+  return jsonOrThrow(resp, "Failed to load statistics");
+}
+
+export async function getModelInfo() {
+  const resp = await fetch("/api/model_info");
+  return jsonOrThrow(resp, "Failed to load model information");
+}
+
 export async function register(username, password) {
   const resp = await fetch("/api/auth/register", {
     method: "POST",

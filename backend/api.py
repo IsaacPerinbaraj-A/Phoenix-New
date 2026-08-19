@@ -26,6 +26,8 @@ from pydantic import BaseModel, ValidationError
 
 import db
 from agents.history import history_model_available
+from agents.safety import BAND_ORDER
+from clinician import build_clinician_summary
 from agents.reasoning import ollama_available
 from agents.vision import vision_model_available
 from config import (
@@ -36,6 +38,7 @@ from config import (
     MAX_UPLOAD_BYTES,
     OLLAMA_MODEL,
     UPLOAD_DIR,
+    WEIGHTS_DIR,
     ensure_runtime_dirs,
 )
 from graph import graph
@@ -286,6 +289,9 @@ def assess(
                         )
 
             result = _result_contract(merged)
+            # Deterministic clinician layer: static referral pathway plus a
+            # queue-ordering priority score. Never generated text.
+            result["clinician"] = build_clinician_summary(result)
             db.save_case(case_id, result, username=username)
             yield _sse({"done": True, "case_id": case_id, "result": result})
         except Exception:
@@ -327,6 +333,93 @@ def case_detail(case_id: str):
     if result is None:
         raise HTTPException(status_code=404, detail="Case not found.")
     return result
+
+
+@app.get("/api/clinician/queue")
+def clinician_queue(limit: int = 100):
+    """Prioritised review queue for clinicians: every stored case ordered
+    by the deterministic priority score (band-dominated), then recency."""
+    rows = db.list_case_payloads(min(max(limit, 1), 500))
+    queue = []
+    for row in rows:
+        payload = row["payload"]
+        summary = payload.get("clinician") or build_clinician_summary(payload)
+        history = payload.get("history")
+        queue.append(
+            {
+                "case_id": row["case_id"],
+                "created_at": row["created_at"],
+                "username": row["username"],
+                "final_band": payload.get("final_band"),
+                "priority_score": summary["priority_score"],
+                "referral": summary["referral"],
+                "risk_score": history.get("risk_score")
+                if isinstance(history, dict)
+                else None,
+                "trigger_count": len(payload.get("safety_triggers") or []),
+                "image_ok": payload.get("image_ok", False),
+            }
+        )
+    queue.sort(
+        key=lambda c: (c["priority_score"], c["created_at"]), reverse=True
+    )
+    return {"cases": queue, "note": "Ordered by deterministic priority score."}
+
+
+@app.get("/api/stats")
+def stats():
+    """Live aggregate statistics over the local case database."""
+    rows = db.list_case_payloads(500)
+    total = len(rows)
+    by_band = {b: 0 for b in ("URGENT", "REVIEW", "MONITOR", "INCONCLUSIVE")}
+    overrides = reasoned = llm_failed = 0
+    for row in rows:
+        payload = row["payload"]
+        band = payload.get("final_band")
+        if band in by_band:
+            by_band[band] += 1
+        reasoning = payload.get("reasoning")
+        if isinstance(reasoning, dict) and reasoning.get("suggested_band"):
+            reasoned += 1
+            if BAND_ORDER.get(band, 0) > BAND_ORDER.get(
+                reasoning["suggested_band"], 0
+            ):
+                overrides += 1
+        else:
+            llm_failed += 1
+    return {
+        "total_cases": total,
+        "by_band": by_band,
+        "override_count": overrides,
+        "override_rate": (overrides / reasoned) if reasoned else None,
+        "llm_failure_count": llm_failed,
+        "llm_failure_rate": (llm_failed / total) if total else None,
+        "note": "Live counts from this prototype's local case database.",
+    }
+
+
+@app.get("/api/model_info")
+def model_info():
+    """Benchmark metrics from actual local evaluation runs.
+
+    Values are read from the reports written by the training scripts; a
+    null entry means that model has not been evaluated on this machine —
+    numbers are never fabricated."""
+    info: dict[str, Any] = {}
+    for name, filename in (
+        ("vision", "vision_test_metrics.json"),
+        ("history", "history_test_metrics.json"),
+    ):
+        path = WEIGHTS_DIR / filename
+        try:
+            info[name] = json.loads(path.read_text()) if path.exists() else None
+        except (ValueError, OSError):
+            info[name] = None
+    info["note"] = (
+        "Benchmark results from actual local evaluation runs; "
+        "null means not yet evaluated."
+    )
+    return info
 
 
 @app.get("/api/health")
