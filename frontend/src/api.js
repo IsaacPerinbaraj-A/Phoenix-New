@@ -34,12 +34,12 @@ export async function getCase(caseId) {
 }
 
 export async function getClinicianQueue() {
-  const resp = await fetch("/api/clinician/queue");
+  const resp = await fetch("/api/clinician/queue", { headers: authHeaders() });
   return jsonOrThrow(resp, "Failed to load the clinician queue");
 }
 
 export async function getStats() {
-  const resp = await fetch("/api/stats");
+  const resp = await fetch("/api/stats", { headers: authHeaders() });
   return jsonOrThrow(resp, "Failed to load statistics");
 }
 
@@ -55,7 +55,7 @@ export async function register(username, password) {
     body: JSON.stringify({ username, password }),
   });
   const body = await jsonOrThrow(resp, "Registration failed");
-  setAuth(body.username, body.token);
+  setAuth(body.username, body.token, body.role);
   return body;
 }
 
@@ -66,7 +66,7 @@ export async function login(username, password) {
     body: JSON.stringify({ username, password }),
   });
   const body = await jsonOrThrow(resp, "Login failed");
-  setAuth(body.username, body.token);
+  setAuth(body.username, body.token, body.role);
   return body;
 }
 

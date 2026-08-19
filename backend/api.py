@@ -54,6 +54,7 @@ logger = logging.getLogger("dermatriage.api")
 async def _lifespan(app: FastAPI):
     ensure_runtime_dirs()
     db.init_db()
+    db.ensure_demo_clinician()
     logger.info("DermaTriage API started (reasoning model: %s).", OLLAMA_MODEL)
     yield
 
@@ -86,6 +87,22 @@ def _user_from_header(authorization: Optional[str]) -> Optional[str]:
     if not authorization or not authorization.startswith("Bearer "):
         return None
     return db.get_token_user(authorization[len("Bearer "):].strip())
+
+
+def _require_clinician(authorization: Optional[str]) -> str:
+    """Gate for clinician-only endpoints."""
+    username = _user_from_header(authorization)
+    if username is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Log in with the clinician account to access this.",
+        )
+    if db.get_user_role(username) != "clinician":
+        raise HTTPException(
+            status_code=403,
+            detail="Clinician account required.",
+        )
+    return username
 
 # Graph node name -> user-facing agent name.
 _NODE_NAMES = {
@@ -183,19 +200,28 @@ def register(req: AuthRequest):
             status_code=422,
             detail="Password must be at least 6 characters.",
         )
-    if not db.create_user(username, req.password):
+    # Public registration always creates health-worker accounts; the demo
+    # clinician account is seeded by the server, never self-assigned.
+    if not db.create_user(username, req.password, role="worker"):
         raise HTTPException(status_code=409, detail="Username already taken.")
     token = db.create_token(username)
-    return {"username": username, "token": token}
+    return {"username": username, "token": token, "role": "worker"}
 
 
 @app.post("/api/auth/login")
 def login(req: AuthRequest):
+    # Idempotent: guarantees the demo clinician exists even when the app
+    # is exercised without the lifespan hook (e.g. under test clients).
+    db.ensure_demo_clinician()
     username = req.username.strip()
     if not db.verify_user(username, req.password):
         raise HTTPException(status_code=401, detail="Invalid username or password.")
     token = db.create_token(username)
-    return {"username": username, "token": token}
+    return {
+        "username": username,
+        "token": token,
+        "role": db.get_user_role(username) or "worker",
+    }
 
 
 @app.post("/api/auth/logout")
@@ -207,7 +233,8 @@ def logout(authorization: Optional[str] = Header(default=None)):
 
 @app.get("/api/auth/me")
 def me(authorization: Optional[str] = Header(default=None)):
-    return {"username": _user_from_header(authorization)}
+    username = _user_from_header(authorization)
+    return {"username": username, "role": db.get_user_role(username)}
 
 
 @app.post("/api/assess")
@@ -336,9 +363,13 @@ def case_detail(case_id: str):
 
 
 @app.get("/api/clinician/queue")
-def clinician_queue(limit: int = 100):
+def clinician_queue(
+    limit: int = 100, authorization: Optional[str] = Header(default=None)
+):
     """Prioritised review queue for clinicians: every stored case ordered
-    by the deterministic priority score (band-dominated), then recency."""
+    by the deterministic priority score (band-dominated), then recency.
+    Requires the clinician account."""
+    _require_clinician(authorization)
     rows = db.list_case_payloads(min(max(limit, 1), 500))
     queue = []
     for row in rows:
@@ -367,8 +398,10 @@ def clinician_queue(limit: int = 100):
 
 
 @app.get("/api/stats")
-def stats():
-    """Live aggregate statistics over the local case database."""
+def stats(authorization: Optional[str] = Header(default=None)):
+    """Live aggregate statistics over the local case database.
+    Requires the clinician account."""
+    _require_clinician(authorization)
     rows = db.list_case_payloads(500)
     total = len(rows)
     by_band = {b: 0 for b in ("URGENT", "REVIEW", "MONITOR", "INCONCLUSIVE")}

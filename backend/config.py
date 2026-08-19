@@ -88,6 +88,17 @@ ENABLE_UNREVIEWED_TRANSLATIONS = (
 )
 
 # --------------------------------------------------------------------------
+# Demo clinician account (prototype only — public demo credentials, never
+# real access control; override via environment for a private deployment)
+# --------------------------------------------------------------------------
+DEMO_CLINICIAN_USERNAME = os.getenv(
+    "DERMATRIAGE_CLINICIAN_USERNAME", "clinician"
+)
+DEMO_CLINICIAN_PASSWORD = os.getenv(
+    "DERMATRIAGE_CLINICIAN_PASSWORD", "clinic123"
+)
+
+# --------------------------------------------------------------------------
 # Demo / development flags (read at call time where they alter behaviour)
 # --------------------------------------------------------------------------
 DEMO_MODE_ENV = "DERMATRIAGE_DEMO_MODE"

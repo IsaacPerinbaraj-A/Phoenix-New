@@ -16,7 +16,12 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from config import DB_PATH, ensure_runtime_dirs
+from config import (
+    DB_PATH,
+    DEMO_CLINICIAN_PASSWORD,
+    DEMO_CLINICIAN_USERNAME,
+    ensure_runtime_dirs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +40,8 @@ _SCHEMAS = [
         username      TEXT PRIMARY KEY,
         salt          TEXT NOT NULL,
         password_hash TEXT NOT NULL,
-        created_at    TEXT NOT NULL
+        created_at    TEXT NOT NULL,
+        role          TEXT NOT NULL DEFAULT 'worker'
     )
     """,
     """
@@ -60,11 +66,15 @@ def _connect() -> sqlite3.Connection:
 def _ensure_schema(conn: sqlite3.Connection) -> None:
     for schema in _SCHEMAS:
         conn.execute(schema)
-    # Migration for databases created before the username column existed.
-    try:
-        conn.execute("ALTER TABLE cases ADD COLUMN username TEXT")
-    except sqlite3.OperationalError:
-        pass  # column already present
+    # Migrations for databases created before these columns existed.
+    for statement in (
+        "ALTER TABLE cases ADD COLUMN username TEXT",
+        "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'worker'",
+    ):
+        try:
+            conn.execute(statement)
+        except sqlite3.OperationalError:
+            pass  # column already present
 
 
 def init_db() -> None:
@@ -175,7 +185,7 @@ def _hash_password(password: str, salt_hex: str) -> str:
     ).hex()
 
 
-def create_user(username: str, password: str) -> bool:
+def create_user(username: str, password: str, role: str = "worker") -> bool:
     """Create a user; returns False if the username is already taken."""
     salt = secrets.token_hex(16)
     pw_hash = _hash_password(password, salt)
@@ -183,13 +193,35 @@ def create_user(username: str, password: str) -> bool:
         with _connect() as conn:
             _ensure_schema(conn)
             conn.execute(
-                "INSERT INTO users (username, salt, password_hash, created_at) "
-                "VALUES (?, ?, ?, ?)",
-                (username, salt, pw_hash, _now()),
+                "INSERT INTO users "
+                "(username, salt, password_hash, created_at, role) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (username, salt, pw_hash, _now(), role),
             )
         return True
     except sqlite3.IntegrityError:
         return False
+
+
+def get_user_role(username: Optional[str]) -> Optional[str]:
+    if not username:
+        return None
+    with _connect() as conn:
+        _ensure_schema(conn)
+        row = conn.execute(
+            "SELECT role FROM users WHERE username = ?", (username,)
+        ).fetchone()
+    return row["role"] if row else None
+
+
+def ensure_demo_clinician() -> None:
+    """Create the demo clinician account if it does not exist yet.
+
+    Prototype convenience only: the credentials are public demo values
+    (configurable via environment), not real access control."""
+    create_user(
+        DEMO_CLINICIAN_USERNAME, DEMO_CLINICIAN_PASSWORD, role="clinician"
+    )
 
 
 def verify_user(username: str, password: str) -> bool:

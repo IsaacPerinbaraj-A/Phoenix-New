@@ -14,13 +14,19 @@ export default function Login() {
     setError(null);
     setBusy(true);
     try {
-      await login(username.trim(), password);
-      navigate("/assess");
+      const body = await login(username.trim(), password);
+      navigate(body.role === "clinician" ? "/clinician" : "/assess");
     } catch (err) {
       setError(err.message);
     } finally {
       setBusy(false);
     }
+  };
+
+  const fillDemoClinician = () => {
+    setUsername("clinician");
+    setPassword("clinic123");
+    setError(null);
   };
 
   return (
@@ -76,6 +82,28 @@ export default function Login() {
             Register here
           </Link>
         </p>
+
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="font-semibold text-blue-800">🩺 Demo clinician account</p>
+              <p className="mt-0.5 font-mono text-xs text-slate-600">
+                clinician / clinic123
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fillDemoClinician}
+              className="rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+            >
+              Fill in
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-blue-700/70">
+            Opens the clinician dashboard: prioritised review queue and live
+            statistics.
+          </p>
+        </div>
         <p className="mt-4 text-center text-xs text-slate-400">
           Prototype accounts — demo use only, no real patient data.
         </p>

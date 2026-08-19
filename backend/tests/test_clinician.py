@@ -16,8 +16,26 @@ from clinician import (  # noqa: E402
     build_clinician_summary,
     priority_score,
 )
+from config import (  # noqa: E402
+    DEMO_CLINICIAN_PASSWORD,
+    DEMO_CLINICIAN_USERNAME,
+)
 
 client = TestClient(api.app)
+
+
+def _clinician_headers():
+    resp = client.post(
+        "/api/auth/login",
+        json={
+            "username": DEMO_CLINICIAN_USERNAME,
+            "password": DEMO_CLINICIAN_PASSWORD,
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["role"] == "clinician"
+    return {"Authorization": f"Bearer {body['token']}"}
 
 
 def _questionnaire(**overrides) -> str:
@@ -88,11 +106,40 @@ def test_completed_case_includes_clinician_block():
     assert clinician["note"]
 
 
+def test_clinician_endpoints_require_clinician_account():
+    # Anonymous requests are rejected.
+    assert client.get("/api/clinician/queue").status_code == 401
+    assert client.get("/api/stats").status_code == 401
+
+    # An ordinary health-worker account is rejected too.
+    import uuid
+
+    worker = client.post(
+        "/api/auth/register",
+        json={"username": f"worker_{uuid.uuid4().hex[:8]}", "password": "secret123"},
+    ).json()
+    worker_headers = {"Authorization": f"Bearer {worker['token']}"}
+    assert worker["role"] == "worker"
+    assert client.get("/api/clinician/queue", headers=worker_headers).status_code == 403
+    assert client.get("/api/stats", headers=worker_headers).status_code == 403
+
+
+def test_registration_cannot_claim_clinician_role():
+    import uuid
+
+    body = client.post(
+        "/api/auth/register",
+        json={"username": f"user_{uuid.uuid4().hex[:8]}", "password": "secret123"},
+    ).json()
+    assert body["role"] == "worker"
+
+
 def test_queue_is_priority_sorted_and_stats_consistent():
     _run_case(bleeding=True)   # URGENT
     _run_case()                # INCONCLUSIVE (LLM simulated down)
 
-    queue = client.get("/api/clinician/queue").json()["cases"]
+    headers = _clinician_headers()
+    queue = client.get("/api/clinician/queue", headers=headers).json()["cases"]
     assert queue, "queue must not be empty after submitting cases"
     scores = [c["priority_score"] for c in queue]
     assert scores == sorted(scores, reverse=True)
@@ -100,7 +147,7 @@ def test_queue_is_priority_sorted_and_stats_consistent():
         assert entry["referral"]
         assert entry["final_band"]
 
-    stats = client.get("/api/stats").json()
+    stats = client.get("/api/stats", headers=headers).json()
     assert stats["total_cases"] >= 2
     assert stats["by_band"]["URGENT"] >= 1
     assert sum(stats["by_band"].values()) <= stats["total_cases"] + 0

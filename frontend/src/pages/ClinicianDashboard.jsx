@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getClinicianQueue, getModelInfo, getStats } from "../api.js";
+import { isClinician } from "../auth.js";
 
 const BAND_CHIP = {
   URGENT: "bg-red-600 text-white",
@@ -50,7 +51,10 @@ export default function ClinicianDashboard() {
   const [modelInfo, setModelInfo] = useState(null);
   const [error, setError] = useState(null);
 
+  const clinician = isClinician();
+
   useEffect(() => {
+    if (!clinician) return;
     Promise.all([getClinicianQueue(), getStats(), getModelInfo()])
       .then(([q, s, m]) => {
         setQueue(q.cases);
@@ -58,10 +62,40 @@ export default function ClinicianDashboard() {
         setModelInfo(m);
       })
       .catch((err) => setError(err.message));
-  }, []);
+  }, [clinician]);
 
   const vision = modelInfo?.vision?.metrics;
   const history = modelInfo?.history;
+
+  if (!clinician) {
+    return (
+      <div className="flex items-center justify-center px-4 py-16">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-4xl" aria-hidden="true">🔒</p>
+          <h1 className="mt-2 text-xl font-bold text-slate-800">
+            Clinician access only
+          </h1>
+          <p className="mt-2 text-sm text-slate-600">
+            This dashboard shows the prioritised review queue and live
+            statistics for all assessed cases. Log in with the clinician
+            account to view it.
+          </p>
+          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-left text-sm text-slate-700">
+            <p className="font-semibold text-blue-800">Demo clinician account</p>
+            <p className="mt-1 font-mono text-xs">
+              username: clinician<br />password: clinic123
+            </p>
+          </div>
+          <Link
+            to="/login"
+            className="mt-5 inline-block rounded-xl bg-blue-600 px-6 py-2.5 font-semibold text-white hover:bg-blue-700"
+          >
+            Go to login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">

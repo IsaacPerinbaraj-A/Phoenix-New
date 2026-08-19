@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { getUser } from "../auth.js";
+import { getUser, isClinician } from "../auth.js";
 import { logout } from "../api.js";
 
 function NavItem({ to, children }) {
@@ -44,14 +44,19 @@ export default function Layout() {
             <NavItem to="/">Home</NavItem>
             <NavItem to="/assess">New Assessment</NavItem>
             <NavItem to="/history">History</NavItem>
-            <NavItem to="/clinician">Clinician</NavItem>
+            {isClinician() && <NavItem to="/clinician">Clinician</NavItem>}
           </nav>
 
           <div className="flex items-center gap-2">
             {user ? (
               <>
                 <span className="rounded-full bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-200">
-                  👤 {user}
+                  {isClinician() ? "🩺" : "👤"} {user}
+                  {isClinician() && (
+                    <span className="ml-1.5 rounded-full bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
+                      Clinician
+                    </span>
+                  )}
                 </span>
                 <button
                   type="button"
