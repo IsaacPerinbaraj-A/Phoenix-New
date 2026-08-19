@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+venv/
+.venv/
+env/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Model weights (copy them in manually; never commit by default)
+backend/models/weights/*
+!backend/models/weights/.gitkeep
+!backend/models/weights/README.md
+
+# Datasets
+data/*
+!data/README.md
+
+# Runtime artifacts: uploaded case photos, Grad-CAM heatmaps, SQLite DB
+backend/runtime/
+*.sqlite3
+*.db
+
+# Evaluation outputs (regenerate with eval scripts; never hand-edit)
+eval/out/
+
+# Secrets / env
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

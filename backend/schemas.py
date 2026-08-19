@@ -1,0 +1,83 @@
+"""Pydantic v2 data contracts shared by every DermaTriage agent.
+
+These models are the only way data moves between graph nodes. Every agent
+receives a `CaseState` and returns a `CaseState`; the LangGraph wiring in
+`graph.py` extracts the per-node field updates.
+"""
+
+from typing import Literal, Optional
+
+from pydantic import BaseModel, Field
+
+Band = Literal[
+    "URGENT",
+    "REVIEW",
+    "MONITOR",
+    "INCONCLUSIVE",
+]
+
+Language = Literal["en", "ta", "hi"]
+
+
+class Questionnaire(BaseModel):
+    """The eight-field structured patient history."""
+
+    age: int = Field(ge=0, le=120)
+    fitzpatrick: int = Field(ge=1, le=6)
+    duration_months: float = Field(ge=0)
+    changed_recently: bool
+    bleeding: bool
+    itching: bool
+    body_site: str
+    family_history_melanoma: bool
+
+
+class VisionOutput(BaseModel):
+    """EfficientNet-B0 inference result."""
+
+    probs: dict[str, float]
+    malignant_p: float = Field(ge=0.0, le=1.0)
+    confidence: float = Field(ge=0.0, le=1.0)
+    gradcam_path: Optional[str] = None
+
+
+class HistoryOutput(BaseModel):
+    """Structured-history risk assessment, independent of the image."""
+
+    risk_score: float = Field(ge=0.0, le=1.0)
+    red_flags: list[str] = Field(default_factory=list)
+    # Provenance: "xgboost" when the trained model produced risk_score,
+    # "heuristic" when the transparent fallback did (model unavailable).
+    source: Literal["xgboost", "heuristic"] = "heuristic"
+
+
+class ReasoningOutput(BaseModel):
+    """LLM supporting explanation. Advisory only — never decides."""
+
+    abcde: dict[str, str]
+    suggested_band: Band
+    rationale: str
+
+
+class CaseState(BaseModel):
+    """The full LangGraph state for one triage case."""
+
+    case_id: str
+    image_path: Optional[str] = None
+    # Optional at the type level so the defensive safety rule R7 (no usable
+    # input at all) is expressible and testable; the API layer always
+    # requires and validates a questionnaire before a case enters the graph.
+    questionnaire: Optional[Questionnaire] = None
+    language: Language = "en"
+
+    image_ok: bool = False
+    quality_note: Optional[str] = None
+
+    vision: Optional[VisionOutput] = None
+    history: Optional[HistoryOutput] = None
+    reasoning: Optional[ReasoningOutput] = None
+
+    final_band: Optional[Band] = None
+    safety_triggers: list[str] = Field(default_factory=list)
+    instruction: Optional[str] = None
+    disclaimer: Optional[str] = None
