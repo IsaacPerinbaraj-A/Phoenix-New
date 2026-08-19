@@ -30,6 +30,120 @@ const STATUS_ICON = {
   failed_safe: "⚠",
 };
 
+function ProbBar({ label, value, tone }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-24 shrink-0 text-xs text-slate-500">{label}</span>
+      <div className="h-2 flex-1 rounded-full bg-slate-200">
+        <div
+          className={`h-2 rounded-full ${tone || "bg-blue-500"}`}
+          style={{ width: `${Math.min(Math.max(value, 0) * 100, 100)}%` }}
+        />
+      </div>
+      <span className="w-12 shrink-0 text-right text-xs font-medium text-slate-600">
+        {(value * 100).toFixed(0)}%
+      </span>
+    </div>
+  );
+}
+
+function AgentDetails({ agent, output }) {
+  switch (agent) {
+    case "ingestion":
+      return (
+        <div className="space-y-1 text-sm">
+          <p>
+            Photo usable:{" "}
+            <strong>{output.image_ok ? "Yes" : "No"}</strong>
+          </p>
+          {output.quality_note && <p>{output.quality_note}</p>}
+        </div>
+      );
+    case "vision": {
+      const v = output.vision;
+      if (!v) return <p className="text-sm">No model output — degraded safely, no probabilities fabricated.</p>;
+      const top = Object.entries(v.probs).sort(([, a], [, b]) => b - a).slice(0, 4);
+      return (
+        <div className="space-y-1.5">
+          <ProbBar label="Malignant group" value={v.malignant_p} tone="bg-red-500" />
+          <ProbBar label="Confidence" value={v.confidence} tone="bg-blue-500" />
+          <p className="pt-1 text-xs font-semibold text-slate-500">Top classes</p>
+          {top.map(([cls, p]) => (
+            <ProbBar key={cls} label={cls} value={Number(p)} tone="bg-slate-400" />
+          ))}
+        </div>
+      );
+    }
+    case "history": {
+      const h = output.history;
+      if (!h) return <p className="text-sm">No history output.</p>;
+      return (
+        <div className="space-y-1.5">
+          <ProbBar label="Risk score" value={h.risk_score} tone="bg-orange-500" />
+          <p className="text-xs text-slate-500">Source: {h.source}</p>
+          {h.red_flags.length > 0 && (
+            <ul className="list-disc pl-5 text-sm">
+              {h.red_flags.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    }
+    case "reasoning": {
+      const r = output.reasoning;
+      if (!r)
+        return (
+          <p className="text-sm">
+            Explanation model unavailable — safety rule R8 treats the case
+            with extra caution.
+          </p>
+        );
+      return (
+        <div className="space-y-1 text-sm">
+          <p>
+            Advisory band: <strong>{r.suggested_band}</strong>{" "}
+            <span className="text-xs opacity-70">(advisory only)</span>
+          </p>
+          {r.abcde && (
+            <ul className="space-y-0.5">
+              {Object.entries(r.abcde).map(([k, v]) => (
+                <li key={k}>
+                  <strong>{k}:</strong> {v}
+                </li>
+              ))}
+            </ul>
+          )}
+          {r.rationale && <p className="italic">{r.rationale}</p>}
+        </div>
+      );
+    }
+    case "safety":
+      return (
+        <div className="space-y-1 text-sm">
+          <p>
+            Final band: <strong>{output.final_band}</strong>
+          </p>
+          {output.safety_explanations?.length > 0 && (
+            <ul className="list-disc pl-5">
+              {output.safety_explanations.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          )}
+          {output.instruction && (
+            <p>
+              Instruction: <strong>{output.instruction}</strong>
+            </p>
+          )}
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
 function summarize(agent, output) {
   if (!output) return null;
   switch (agent) {
@@ -126,11 +240,11 @@ export default function AgentTrace({ events, running }) {
               {event?.output && (
                 <details className="mt-1">
                   <summary className="cursor-pointer text-xs underline opacity-70">
-                    Raw output (JSON)
+                    Details
                   </summary>
-                  <pre className="mt-1 max-h-48 overflow-auto rounded bg-white/60 p-2 text-xs">
-                    {JSON.stringify(event.output, null, 2)}
-                  </pre>
+                  <div className="mt-2 rounded-lg bg-white/70 p-3">
+                    <AgentDetails agent={key} output={event.output} />
+                  </div>
                 </details>
               )}
             </li>

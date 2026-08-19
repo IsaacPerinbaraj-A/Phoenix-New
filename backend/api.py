@@ -178,6 +178,7 @@ def _result_contract(state_fields: dict[str, Any]) -> dict[str, Any]:
         "reasoning": _dump(state_fields.get("reasoning")),
         "final_band": state_fields.get("final_band"),
         "safety_triggers": state_fields.get("safety_triggers", []),
+        "safety_explanations": state_fields.get("safety_explanations", []),
         "instruction": state_fields.get("instruction"),
         "disclaimer": state_fields.get("disclaimer"),
         "language": state_fields.get("language", "en"),

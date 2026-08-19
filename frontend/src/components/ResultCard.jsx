@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import Disclaimer from "./Disclaimer.jsx";
 
 // Display metadata only — the band itself is decided exclusively by the
@@ -33,30 +34,45 @@ const BANDS = {
   },
 };
 
-function SignalBar({ label, value, tone }) {
+function SignalTile({ label, value, tone, hint }) {
   if (value === null || value === undefined) return null;
   const width = Math.min(Math.max(value, 0), 1) * 100;
   return (
-    <div className="flex-1 basis-40">
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <span>{label}</span>
-        <span className="font-semibold text-slate-700">{(value * 100).toFixed(0)}%</span>
-      </div>
-      <div className="mt-1 h-2 rounded-full bg-slate-200">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className="mt-0.5 text-3xl font-extrabold text-slate-800">
+        {(value * 100).toFixed(0)}
+        <span className="text-lg font-bold text-slate-400">%</span>
+      </p>
+      <div className="mt-1.5 h-2.5 rounded-full bg-slate-200">
         <div
-          className={`h-2 rounded-full ${tone || "bg-blue-500"}`}
+          className={`h-2.5 rounded-full ${tone || "bg-blue-500"}`}
           style={{ width: `${width}%` }}
         />
       </div>
+      {hint && <p className="mt-1 text-[11px] text-slate-400">{hint}</p>}
     </div>
   );
 }
 
 export default function ResultCard({ result }) {
+  const hasVision = !!result?.vision;
+  const [benchmark, setBenchmark] = useState(null);
+
+  // Real, locally-evaluated model benchmark (null = not yet evaluated).
+  useEffect(() => {
+    if (!hasVision) return;
+    fetch("/api/model_info")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setBenchmark)
+      .catch(() => {});
+  }, [hasVision]);
+
   if (!result?.final_band) return null;
   const band = BANDS[result.final_band] || BANDS.INCONCLUSIVE;
   const advisory = result.reasoning?.suggested_band;
   const clinician = result.clinician;
+  const visionMetrics = benchmark?.vision?.metrics;
 
   return (
     <section aria-labelledby="result-heading" className="space-y-4">
@@ -136,36 +152,67 @@ export default function ResultCard({ result }) {
         </div>
       )}
 
-      {/* 4b. Model signals — the numbers that matter, at a glance */}
+      {/* 4b. Why this result — per-case causes from the rule engine */}
+      {result.safety_explanations?.length > 0 && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Why this result
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+            {result.safety_explanations.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-slate-400">
+            Causes are computed deterministically from this case's own
+            values by the safety rule engine.
+          </p>
+        </div>
+      )}
+
+      {/* 4c. Model signals — the numbers that matter, at a glance */}
       {(result.vision || result.history) && (
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Model signals
           </p>
-          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-3">
+          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {result.vision && (
               <>
-                <SignalBar
-                  label="Vision confidence"
-                  value={result.vision.confidence}
-                  tone="bg-blue-500"
-                />
-                <SignalBar
+                <SignalTile
                   label="Malignant-group probability"
                   value={result.vision.malignant_p}
                   tone="bg-red-500"
+                  hint="Image model estimate for the concerning class group"
+                />
+                <SignalTile
+                  label="Vision confidence"
+                  value={result.vision.confidence}
+                  tone="bg-blue-500"
+                  hint="Model certainty in its top class"
                 />
               </>
             )}
             {result.history && (
-              <SignalBar
+              <SignalTile
                 label="History risk score"
                 value={result.history.risk_score}
                 tone="bg-orange-500"
+                hint={`From the patient's answers (${result.history.source})`}
               />
             )}
           </div>
-          <p className="mt-2 text-xs text-slate-400">
+          {result.vision && (
+            <p className="mt-2 text-xs text-slate-500">
+              {visionMetrics
+                ? `Vision model benchmark (HAM10000 lesion-grouped test split): ` +
+                  `${(visionMetrics.malignant_recall * 100).toFixed(1)}% malignant recall · ` +
+                  `${(visionMetrics.balanced_accuracy * 100).toFixed(1)}% balanced accuracy. ` +
+                  `Dermatoscopic benchmark — smartphone photos may differ.`
+                : "Vision model benchmark: not yet evaluated on this machine."}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-slate-400">
             Evidence inputs only — the final band above is decided by the
             deterministic safety rules, not by these numbers alone.
           </p>

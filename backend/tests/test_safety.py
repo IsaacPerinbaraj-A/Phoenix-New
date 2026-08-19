@@ -215,6 +215,25 @@ def test_instruction_matches_final_band_exactly():
     assert out.instruction == INSTRUCTIONS["en"]["INCONCLUSIVE"]
 
 
+def test_explanations_are_data_driven():
+    out = safety_verifier(
+        make_case(changed_recently=True, duration_months=3.0)
+    )
+    assert "R2_RAPID_EVOLUTION" in out.safety_triggers
+    joined = " ".join(out.safety_explanations)
+    # The case's actual value appears in the cause statement.
+    assert "3" in joined
+    # One explanation per trigger.
+    assert len(out.safety_explanations) >= len(out.safety_triggers)
+
+
+def test_no_trigger_case_explains_advisory_basis():
+    out = safety_verifier(make_case())
+    assert out.safety_triggers == []
+    assert out.safety_explanations
+    assert "advisory" in " ".join(out.safety_explanations).lower()
+
+
 def test_disclaimer_always_exists():
     out = safety_verifier(make_case())
     assert out.disclaimer == DISCLAIMER["en"]

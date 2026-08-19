@@ -48,6 +48,7 @@ def _safety_node(state: CaseState) -> dict:
     return {
         "final_band": out.final_band,
         "safety_triggers": out.safety_triggers,
+        "safety_explanations": out.safety_explanations,
         "instruction": out.instruction,
         "disclaimer": out.disclaimer,
     }
