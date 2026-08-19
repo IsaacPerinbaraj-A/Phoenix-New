@@ -24,32 +24,53 @@ const FITZPATRICK = [
   [6, "#5b3a26", "Type 6 — never burns, deeply pigmented"],
 ];
 
-function YesNo({ id, label, value, onChange }) {
+function YesNo({ label, value, onChange }) {
+  // value: true | false | null (null = not answered yet — answering is
+  // required, so a worker cannot accidentally submit all-"No").
+  const unanswered = value !== true && value !== false;
   return (
-    <fieldset className="rounded-lg border border-slate-200 bg-white p-3">
-      <legend className="px-1 text-sm font-medium text-slate-700">{label}</legend>
-      <div className="mt-1 flex gap-2" role="radiogroup" aria-label={label}>
-        {[
-          [true, "Yes"],
-          [false, "No"],
-        ].map(([v, text]) => (
-          <button
-            key={text}
-            type="button"
-            role="radio"
-            aria-checked={value === v}
-            onClick={() => onChange(v)}
-            className={`min-h-[44px] flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${
-              value === v
-                ? "border-blue-600 bg-blue-600 text-white"
-                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            {text}
-          </button>
-        ))}
+    <div
+      className={`rounded-xl border-2 bg-white p-3 ${
+        unanswered ? "border-slate-200" : "border-slate-300"
+      }`}
+    >
+      <p className="text-sm font-medium text-slate-700">
+        {label}
+        {unanswered && (
+          <span className="ml-1 align-middle text-xs font-normal text-slate-400">
+            (choose one)
+          </span>
+        )}
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-2" role="radiogroup" aria-label={label}>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={value === true}
+          onClick={() => onChange(true)}
+          className={`min-h-[44px] rounded-lg border-2 px-3 py-2 text-sm font-semibold transition ${
+            value === true
+              ? "border-red-500 bg-red-500 text-white"
+              : "border-slate-200 bg-white text-slate-600 hover:border-red-300 hover:bg-red-50"
+          }`}
+        >
+          Yes
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={value === false}
+          onClick={() => onChange(false)}
+          className={`min-h-[44px] rounded-lg border-2 px-3 py-2 text-sm font-semibold transition ${
+            value === false
+              ? "border-emerald-600 bg-emerald-600 text-white"
+              : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50"
+          }`}
+        >
+          No
+        </button>
       </div>
-    </fieldset>
+    </div>
   );
 }
 
@@ -139,25 +160,21 @@ export default function Questionnaire({ value, onChange }) {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <YesNo
-          id="changed"
           label="Has it changed recently (size, shape, colour)?"
           value={value.changed_recently}
           onChange={(v) => set("changed_recently", v)}
         />
         <YesNo
-          id="bleeding"
           label="Does it bleed?"
           value={value.bleeding}
           onChange={(v) => set("bleeding", v)}
         />
         <YesNo
-          id="itching"
           label="Does it itch?"
           value={value.itching}
           onChange={(v) => set("itching", v)}
         />
         <YesNo
-          id="family"
           label="Has anyone in the family had melanoma (serious skin cancer)?"
           value={value.family_history_melanoma}
           onChange={(v) => set("family_history_melanoma", v)}

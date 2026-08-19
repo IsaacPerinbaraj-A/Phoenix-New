@@ -79,12 +79,20 @@ const EMPTY_QUESTIONNAIRE = {
   age: "",
   fitzpatrick: 3,
   duration_months: "",
-  changed_recently: false,
-  bleeding: false,
-  itching: false,
+  // null = not answered yet; all four must be explicitly answered.
+  changed_recently: null,
+  bleeding: null,
+  itching: null,
   body_site: "arm",
-  family_history_melanoma: false,
+  family_history_melanoma: null,
 };
+
+const REQUIRED_ANSWERS = [
+  ["changed_recently", "Has it changed recently?"],
+  ["bleeding", "Does it bleed?"],
+  ["itching", "Does it itch?"],
+  ["family_history_melanoma", "Family history of melanoma?"],
+];
 
 export default function AssessPage() {
   const [phase, setPhase] = useState("form"); // form | running | done | error
@@ -117,6 +125,11 @@ export default function AssessPage() {
       return "Please enter a valid age (0–120).";
     if (!Number.isFinite(duration) || duration < 0)
       return "Please enter how many months the lesion has been there.";
+    const missing = REQUIRED_ANSWERS.filter(
+      ([field]) => typeof questionnaire[field] !== "boolean"
+    );
+    if (missing.length > 0)
+      return `Please answer: ${missing.map(([, label]) => label).join(" · ")}`;
     return null;
   };
 

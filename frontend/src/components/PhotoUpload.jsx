@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Ask the backend to run the EXACT ingestion quality gate on the photo,
 // so the early warning always matches what the pipeline will decide.
@@ -15,9 +15,22 @@ async function precheckPhoto(f) {
 
 export default function PhotoUpload({ file, onChange, onQualityWarning }) {
   const inputRef = useRef(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [qualityNote, setQualityNote] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+
+  const closeCamera = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+  };
+
+  // Never leave the camera running when the component unmounts.
+  useEffect(() => closeCamera, []);
 
   const handleFile = async (f) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -42,6 +55,59 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
       setPreviewUrl(null);
       onChange(null);
     }
+  };
+
+  const openCamera = async () => {
+    setCameraError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError(
+        "The in-browser camera needs a secure connection (localhost or " +
+          "HTTPS). Use “Upload a photo” instead — on a phone it opens the " +
+          "camera app directly."
+      );
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraOpen(true);
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play().catch(() => {});
+        }
+      });
+    } catch {
+      setCameraError(
+        "Camera unavailable or permission denied. Use “Upload a photo” " +
+          "instead — on a phone it opens the camera app directly."
+      );
+    }
+  };
+
+  const captureFrame = () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          const f = new File([blob], "camera-capture.jpg", {
+            type: "image/jpeg",
+          });
+          closeCamera();
+          handleFile(f);
+        }
+      },
+      "image/jpeg",
+      0.92
+    );
   };
 
   return (
@@ -77,13 +143,22 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
       />
 
       {!file ? (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="w-full rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-8 text-center text-slate-600 hover:border-blue-400 hover:text-blue-600"
-        >
-          📷 Take or choose a photo
-        </button>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={openCamera}
+            className="rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 px-4 py-6 text-center font-medium text-blue-700 hover:border-blue-400 hover:bg-blue-100"
+          >
+            📷 Use camera
+          </button>
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-6 text-center font-medium text-slate-600 hover:border-blue-400 hover:text-blue-600"
+          >
+            🖼️ Upload a photo
+          </button>
+        </div>
       ) : (
         <div className="space-y-2">
           <img
@@ -109,19 +184,67 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
           <div className="flex gap-2">
             <button
               type="button"
+              onClick={openCamera}
+              className="min-h-[44px] flex-1 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+            >
+              📷 Retake
+            </button>
+            <button
+              type="button"
               onClick={() => inputRef.current?.click()}
               className="min-h-[44px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              Replace photo
+              Replace
             </button>
             <button
               type="button"
               onClick={() => handleFile(null)}
               className="min-h-[44px] flex-1 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
             >
-              Remove photo
+              Remove
             </button>
           </div>
+        </div>
+      )}
+
+      {cameraError && (
+        <p className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
+          {cameraError}
+        </p>
+      )}
+
+      {/* Live camera modal */}
+      {cameraOpen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
+          role="dialog"
+          aria-label="Camera"
+        >
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className="max-h-[70vh] w-full max-w-2xl rounded-xl object-contain"
+          />
+          <div className="mt-4 flex w-full max-w-2xl gap-3">
+            <button
+              type="button"
+              onClick={captureFrame}
+              className="min-h-[52px] flex-1 rounded-xl bg-blue-600 px-4 py-3 text-lg font-bold text-white hover:bg-blue-700"
+            >
+              📸 Capture
+            </button>
+            <button
+              type="button"
+              onClick={closeCamera}
+              className="min-h-[52px] flex-1 rounded-xl border border-slate-400 px-4 py-3 text-lg font-medium text-slate-200 hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="mt-2 text-center text-xs text-slate-400">
+            Keep the lesion centred and hold steady.
+          </p>
         </div>
       )}
     </section>
