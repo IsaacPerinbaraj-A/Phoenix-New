@@ -32,7 +32,8 @@ _SCHEMAS = [
         created_at  TEXT NOT NULL,
         final_band  TEXT,
         payload     TEXT NOT NULL,
-        username    TEXT
+        username    TEXT,
+        status      TEXT NOT NULL DEFAULT 'pending'
     )
     """,
     """
@@ -70,6 +71,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     for statement in (
         "ALTER TABLE cases ADD COLUMN username TEXT",
         "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'worker'",
+        "ALTER TABLE cases ADD COLUMN status TEXT NOT NULL DEFAULT 'pending'",
     ):
         try:
             conn.execute(statement)
@@ -100,8 +102,8 @@ def save_case(
             _ensure_schema(conn)
             conn.execute(
                 "INSERT OR REPLACE INTO cases "
-                "(case_id, created_at, final_band, payload, username) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "(case_id, created_at, final_band, payload, username, status) "
+                "VALUES (?, ?, ?, ?, ?, 'pending')",
                 (
                     case_id,
                     _now(),
@@ -119,9 +121,13 @@ def get_case(case_id: str) -> Optional[dict[str, Any]]:
     with _connect() as conn:
         _ensure_schema(conn)
         row = conn.execute(
-            "SELECT payload FROM cases WHERE case_id = ?", (case_id,)
+            "SELECT payload, status FROM cases WHERE case_id = ?", (case_id,)
         ).fetchone()
-    return json.loads(row["payload"]) if row else None
+    if row is None:
+        return None
+    payload = json.loads(row["payload"])
+    payload["status"] = row["status"]
+    return payload
 
 
 def list_cases(
@@ -131,17 +137,27 @@ def list_cases(
         _ensure_schema(conn)
         if username is not None:
             rows = conn.execute(
-                "SELECT case_id, created_at, final_band FROM cases "
+                "SELECT case_id, created_at, final_band, status FROM cases "
                 "WHERE username = ? ORDER BY created_at DESC LIMIT ?",
                 (username, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT case_id, created_at, final_band FROM cases "
+                "SELECT case_id, created_at, final_band, status FROM cases "
                 "ORDER BY created_at DESC LIMIT ?",
                 (limit,),
             ).fetchall()
     return [dict(r) for r in rows]
+
+
+def set_case_status(case_id: str, status: str) -> bool:
+    """Update a case's workflow status; returns False if the case is unknown."""
+    with _connect() as conn:
+        _ensure_schema(conn)
+        cursor = conn.execute(
+            "UPDATE cases SET status = ? WHERE case_id = ?", (status, case_id)
+        )
+    return cursor.rowcount > 0
 
 
 def list_case_payloads(limit: int = 500) -> list[dict[str, Any]]:
@@ -150,7 +166,7 @@ def list_case_payloads(limit: int = 500) -> list[dict[str, Any]]:
     with _connect() as conn:
         _ensure_schema(conn)
         rows = conn.execute(
-            "SELECT case_id, created_at, username, payload FROM cases "
+            "SELECT case_id, created_at, username, payload, status FROM cases "
             "ORDER BY created_at DESC LIMIT ?",
             (limit,),
         ).fetchall()
@@ -166,6 +182,7 @@ def list_case_payloads(limit: int = 500) -> list[dict[str, Any]]:
                 "created_at": r["created_at"],
                 "username": r["username"],
                 "payload": payload,
+                "status": r["status"],
             }
         )
     return out

@@ -385,6 +385,33 @@ def cases(limit: int = 50, authorization: Optional[str] = Header(default=None)):
     }
 
 
+CASE_STATUSES = ("pending", "reviewed", "referred", "closed")
+
+
+class StatusUpdate(BaseModel):
+    status: str
+
+
+@app.patch("/api/cases/{case_id}/status")
+def update_case_status(
+    case_id: str,
+    update: StatusUpdate,
+    authorization: Optional[str] = Header(default=None),
+):
+    """Clinician workflow: mark a case pending/reviewed/referred/closed."""
+    _require_clinician(authorization)
+    if not _CASE_ID_RE.match(case_id):
+        raise HTTPException(status_code=400, detail="Invalid case id.")
+    if update.status not in CASE_STATUSES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Status must be one of: {', '.join(CASE_STATUSES)}.",
+        )
+    if not db.set_case_status(case_id, update.status):
+        raise HTTPException(status_code=404, detail="Case not found.")
+    return {"case_id": case_id, "status": update.status}
+
+
 @app.get("/api/cases/{case_id}")
 def case_detail(case_id: str):
     if not _CASE_ID_RE.match(case_id):
@@ -422,6 +449,7 @@ def clinician_queue(
                 else None,
                 "trigger_count": len(payload.get("safety_triggers") or []),
                 "image_ok": payload.get("image_ok", False),
+                "status": row.get("status", "pending"),
             }
         )
     queue.sort(

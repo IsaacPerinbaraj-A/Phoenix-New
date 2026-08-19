@@ -33,6 +33,15 @@ export async function getCase(caseId) {
   return jsonOrThrow(resp, "Case not found");
 }
 
+export async function setCaseStatus(caseId, status) {
+  const resp = await fetch(`/api/cases/${caseId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ status }),
+  });
+  return jsonOrThrow(resp, "Failed to update case status");
+}
+
 export async function getClinicianQueue() {
   const resp = await fetch("/api/clinician/queue", { headers: authHeaders() });
   return jsonOrThrow(resp, "Failed to load the clinician queue");

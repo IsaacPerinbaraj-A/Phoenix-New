@@ -34,6 +34,95 @@ const BANDS = {
   },
 };
 
+// Printable referral slip. Hidden on screen; @media print rules in
+// index.css make it the only visible element when printing.
+function ReferralSlip({ result, band }) {
+  const clinician = result.clinician;
+  return (
+    <div id="referral-slip">
+      <div style={{ borderBottom: "3px solid #000", paddingBottom: 8 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800 }}>
+          DermaTriage — Referral Slip
+        </h1>
+        <p style={{ fontSize: 11 }}>
+          Triage-support prototype · NOT a diagnosis · NOT a medical device
+        </p>
+      </div>
+
+      <p style={{ marginTop: 10, fontSize: 12 }}>
+        Case ID: <strong>{result.case_id}</strong> · Printed:{" "}
+        {new Date().toLocaleString()}
+      </p>
+
+      <div style={{ border: "3px solid #000", padding: 12, marginTop: 10 }}>
+        <p style={{ fontSize: 26, fontWeight: 800 }}>
+          {band.emoji} {result.final_band}
+        </p>
+        <p style={{ fontSize: 13 }}>{band.sub}</p>
+      </div>
+
+      <h2 style={{ marginTop: 12, fontSize: 14, fontWeight: 700 }}>
+        What the patient must do
+      </h2>
+      <p style={{ fontSize: 15, fontWeight: 700 }}>{result.instruction}</p>
+
+      {clinician && (
+        <>
+          <h2 style={{ marginTop: 12, fontSize: 14, fontWeight: 700 }}>
+            For the receiving clinician (priority {clinician.priority_score}/100)
+          </h2>
+          <p style={{ fontSize: 13 }}>{clinician.referral}</p>
+        </>
+      )}
+
+      {result.safety_explanations?.length > 0 && (
+        <>
+          <h2 style={{ marginTop: 12, fontSize: 14, fontWeight: 700 }}>
+            Why this result
+          </h2>
+          <ul style={{ fontSize: 12, paddingLeft: 18, listStyle: "disc" }}>
+            {result.safety_explanations.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {(result.vision || result.history) && (
+        <>
+          <h2 style={{ marginTop: 12, fontSize: 14, fontWeight: 700 }}>
+            Model signals (evidence only — rules decide)
+          </h2>
+          <p style={{ fontSize: 12 }}>
+            {result.vision &&
+              `Malignant-group probability: ${(result.vision.malignant_p * 100).toFixed(0)}% · ` +
+                `Vision confidence: ${(result.vision.confidence * 100).toFixed(0)}% · `}
+            {result.history &&
+              `History risk score: ${(result.history.risk_score * 100).toFixed(0)}%`}
+          </p>
+        </>
+      )}
+
+      <div
+        style={{
+          border: "2px solid #000",
+          padding: 8,
+          marginTop: 14,
+          fontSize: 13,
+          fontWeight: 700,
+        }}
+      >
+        ⚠ {result.disclaimer ||
+          "This is not a diagnosis. Only a doctor can tell you what it is."}
+      </div>
+      <p style={{ marginTop: 8, fontSize: 10 }}>
+        Hackathon research prototype · Not clinically validated · Requires
+        professional medical assessment
+      </p>
+    </div>
+  );
+}
+
 function SignalTile({ label, value, tone, hint }) {
   if (value === null || value === undefined) return null;
   const width = Math.min(Math.max(value, 0), 1) * 100;
@@ -124,11 +213,27 @@ export default function ResultCard({ result }) {
 
       {/* 2. Action instruction — deterministic template text */}
       <div className="rounded-xl border-2 border-slate-800 bg-white p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          What to do
-        </p>
-        <p className="mt-1 text-lg font-bold text-slate-900">{result.instruction}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              What to do
+            </p>
+            <p className="mt-1 text-lg font-bold text-slate-900">
+              {result.instruction}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            🖨️ Print referral
+          </button>
+        </div>
       </div>
+
+      {/* Hidden on screen; the only visible content when printing */}
+      <ReferralSlip result={result} band={band} />
 
       {/* 3. Disclaimer — always visible */}
       <Disclaimer text={result.disclaimer} />

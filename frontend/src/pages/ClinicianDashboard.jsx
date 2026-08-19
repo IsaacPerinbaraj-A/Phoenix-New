@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getClinicianQueue, getModelInfo, getStats } from "../api.js";
+import { getClinicianQueue, getModelInfo, getStats, setCaseStatus } from "../api.js";
 import { isClinician } from "../auth.js";
+
+const CASE_STATUSES = ["pending", "reviewed", "referred", "closed"];
+
+const STATUS_STYLE = {
+  pending: "border-amber-300 bg-amber-50 text-amber-800",
+  reviewed: "border-blue-300 bg-blue-50 text-blue-800",
+  referred: "border-purple-300 bg-purple-50 text-purple-800",
+  closed: "border-slate-300 bg-slate-100 text-slate-600",
+};
 
 const BAND_CHIP = {
   URGENT: "bg-red-600 text-white",
@@ -50,6 +59,20 @@ export default function ClinicianDashboard() {
   const [stats, setStats] = useState(null);
   const [modelInfo, setModelInfo] = useState(null);
   const [error, setError] = useState(null);
+
+  const changeStatus = async (caseId, status) => {
+    const previous = queue;
+    // Optimistic update; revert on failure.
+    setQueue((q) =>
+      q.map((c) => (c.case_id === caseId ? { ...c, status } : c))
+    );
+    try {
+      await setCaseStatus(caseId, status);
+    } catch (err) {
+      setQueue(previous);
+      setError(err.message);
+    }
+  };
 
   const clinician = isClinician();
 
@@ -214,7 +237,7 @@ export default function ClinicianDashboard() {
       )}
       {queue !== null && queue.length > 0 && (
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-400">
                 <th className="px-4 py-3">Priority</th>
@@ -224,6 +247,7 @@ export default function ClinicianDashboard() {
                 <th className="px-4 py-3">Photo</th>
                 <th className="px-4 py-3">Submitted</th>
                 <th className="px-4 py-3">By</th>
+                <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
@@ -267,6 +291,22 @@ export default function ClinicianDashboard() {
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500">
                     {c.username || "anonymous"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <select
+                      value={c.status || "pending"}
+                      onChange={(e) => changeStatus(c.case_id, e.target.value)}
+                      aria-label={`Status for case ${c.case_id.slice(0, 8)}`}
+                      className={`rounded-full border px-2.5 py-1 text-xs font-bold capitalize ${
+                        STATUS_STYLE[c.status] || STATUS_STYLE.pending
+                      }`}
+                    >
+                      {CASE_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-4 py-3">
                     <Link

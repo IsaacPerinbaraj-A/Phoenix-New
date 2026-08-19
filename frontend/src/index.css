@@ -7,3 +7,29 @@
   outline: 3px solid #2563eb;
   outline-offset: 2px;
 }
+
+/* Printable referral slip: hidden on screen; when printing, only the slip
+   is visible. */
+#referral-slip {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #referral-slip,
+  #referral-slip * {
+    visibility: visible;
+  }
+  #referral-slip {
+    display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 24px;
+    background: #fff;
+    color: #000;
+  }
+}

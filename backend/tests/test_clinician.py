@@ -154,6 +154,54 @@ def test_queue_is_priority_sorted_and_stats_consistent():
     assert stats["llm_failure_count"] >= 2
 
 
+def test_case_status_workflow():
+    headers = _clinician_headers()
+    result = _run_case()
+    case_id = result["case_id"]
+
+    # New cases enter the queue as pending.
+    queue = client.get("/api/clinician/queue", headers=headers).json()["cases"]
+    entry = next(c for c in queue if c["case_id"] == case_id)
+    assert entry["status"] == "pending"
+
+    # Only the clinician may change status.
+    assert (
+        client.patch(
+            f"/api/cases/{case_id}/status", json={"status": "reviewed"}
+        ).status_code
+        == 401
+    )
+    # Invalid status values are rejected.
+    assert (
+        client.patch(
+            f"/api/cases/{case_id}/status",
+            json={"status": "bogus"},
+            headers=headers,
+        ).status_code
+        == 422
+    )
+    # Valid transition round-trips through queue and case detail.
+    resp = client.patch(
+        f"/api/cases/{case_id}/status",
+        json={"status": "referred"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert client.get(f"/api/cases/{case_id}").json()["status"] == "referred"
+    queue = client.get("/api/clinician/queue", headers=headers).json()["cases"]
+    assert next(c for c in queue if c["case_id"] == case_id)["status"] == "referred"
+
+    # Unknown case ids 404.
+    assert (
+        client.patch(
+            f"/api/cases/{'0' * 32}/status",
+            json={"status": "reviewed"},
+            headers=headers,
+        ).status_code
+        == 404
+    )
+
+
 def test_model_info_never_fabricates():
     body = client.get("/api/model_info").json()
     assert "vision" in body and "history" in body
