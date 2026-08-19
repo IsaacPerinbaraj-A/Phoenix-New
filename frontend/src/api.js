@@ -1,6 +1,22 @@
 // API client with a buffered SSE parser: events remain correct even when
 // network chunks split between event boundaries.
 
+import { authHeaders, clearAuth, setAuth } from "./auth.js";
+
+async function jsonOrThrow(resp, fallback) {
+  if (!resp.ok) {
+    let detail = fallback || `Request failed (${resp.status})`;
+    try {
+      const body = await resp.json();
+      if (body.detail) detail = String(body.detail);
+    } catch {
+      /* keep default message */
+    }
+    throw new Error(detail);
+  }
+  return resp.json();
+}
+
 export async function getHealth() {
   const resp = await fetch("/api/health");
   if (!resp.ok) throw new Error("Health check failed");
@@ -8,15 +24,43 @@ export async function getHealth() {
 }
 
 export async function getCases() {
-  const resp = await fetch("/api/cases");
-  if (!resp.ok) throw new Error("Failed to load cases");
-  return resp.json();
+  const resp = await fetch("/api/cases", { headers: authHeaders() });
+  return jsonOrThrow(resp, "Failed to load cases");
 }
 
 export async function getCase(caseId) {
-  const resp = await fetch(`/api/cases/${caseId}`);
-  if (!resp.ok) throw new Error("Case not found");
-  return resp.json();
+  const resp = await fetch(`/api/cases/${caseId}`, { headers: authHeaders() });
+  return jsonOrThrow(resp, "Case not found");
+}
+
+export async function register(username, password) {
+  const resp = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  const body = await jsonOrThrow(resp, "Registration failed");
+  setAuth(body.username, body.token);
+  return body;
+}
+
+export async function login(username, password) {
+  const resp = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  const body = await jsonOrThrow(resp, "Login failed");
+  setAuth(body.username, body.token);
+  return body;
+}
+
+export async function logout() {
+  try {
+    await fetch("/api/auth/logout", { method: "POST", headers: authHeaders() });
+  } finally {
+    clearAuth();
+  }
 }
 
 /**
@@ -29,7 +73,11 @@ export async function submitCase({ imageFile, questionnaire, language, onEvent }
   form.append("questionnaire", JSON.stringify(questionnaire));
   form.append("language", language || "en");
 
-  const resp = await fetch("/api/assess", { method: "POST", body: form });
+  const resp = await fetch("/api/assess", {
+    method: "POST",
+    body: form,
+    headers: authHeaders(),
+  });
   if (!resp.ok) {
     let detail = `Request failed (${resp.status})`;
     try {

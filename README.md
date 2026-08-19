@@ -168,6 +168,17 @@ pytest -v
 Run from the repository root (`pytest.ini` sets the paths). The safety
 suite alone: `pytest backend/tests/test_safety.py -v`.
 
+## Web app pages and prototype accounts
+
+The frontend is a full multi-page site: a landing page, the assessment
+workspace (form beside the live agent pipeline on desktop), a per-user
+assessment **history** with clickable case reviews, and **login/register**
+pages. Accounts use salted PBKDF2 password hashes and random bearer tokens
+in SQLite — reasonable prototype auth, but NOT presented as
+production-grade identity management; demo use only, never real patient
+data. Assessments run with or without an account; logging in simply saves
+cases to your personal history.
+
 ## Datasets and model training
 
 See [data/README.md](data/README.md) for dataset layout.

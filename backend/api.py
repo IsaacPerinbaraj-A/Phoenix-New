@@ -19,7 +19,7 @@ from typing import Any, Optional
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, ValidationError
@@ -75,6 +75,14 @@ app.add_middleware(
 )
 
 _CASE_ID_RE = re.compile(r"^[a-f0-9]{32}$")
+_USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,32}$")
+
+
+def _user_from_header(authorization: Optional[str]) -> Optional[str]:
+    """Resolve a 'Bearer <token>' header to a username, or None."""
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    return db.get_token_user(authorization[len("Bearer "):].strip())
 
 # Graph node name -> user-facing agent name.
 _NODE_NAMES = {
@@ -149,11 +157,62 @@ def _result_contract(state_fields: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Prototype auth (salted PBKDF2 + bearer tokens; not production identity)
+# ---------------------------------------------------------------------------
+
+
+class AuthRequest(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/auth/register")
+def register(req: AuthRequest):
+    username = req.username.strip()
+    if not _USERNAME_RE.match(username):
+        raise HTTPException(
+            status_code=422,
+            detail="Username must be 3-32 characters: letters, numbers, underscore.",
+        )
+    if len(req.password) < 6:
+        raise HTTPException(
+            status_code=422,
+            detail="Password must be at least 6 characters.",
+        )
+    if not db.create_user(username, req.password):
+        raise HTTPException(status_code=409, detail="Username already taken.")
+    token = db.create_token(username)
+    return {"username": username, "token": token}
+
+
+@app.post("/api/auth/login")
+def login(req: AuthRequest):
+    username = req.username.strip()
+    if not db.verify_user(username, req.password):
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    token = db.create_token(username)
+    return {"username": username, "token": token}
+
+
+@app.post("/api/auth/logout")
+def logout(authorization: Optional[str] = Header(default=None)):
+    if authorization and authorization.startswith("Bearer "):
+        db.delete_token(authorization[len("Bearer "):].strip())
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+def me(authorization: Optional[str] = Header(default=None)):
+    return {"username": _user_from_header(authorization)}
+
+
 @app.post("/api/assess")
 def assess(
     image: Optional[UploadFile] = File(default=None),
     questionnaire: str = Form(...),
     language: str = Form(default="en"),
+    authorization: Optional[str] = Header(default=None),
 ):
     """Run one case through the five-agent graph, streaming SSE events."""
     try:
@@ -167,6 +226,7 @@ def assess(
     if language not in ("en", "ta", "hi"):
         language = "en"
 
+    username = _user_from_header(authorization)
     case_id = uuid.uuid4().hex
     image_path: Optional[str] = None
     if image is not None and image.filename:
@@ -226,7 +286,7 @@ def assess(
                         )
 
             result = _result_contract(merged)
-            db.save_case(case_id, result)
+            db.save_case(case_id, result, username=username)
             yield _sse({"done": True, "case_id": case_id, "result": result})
         except Exception:
             logger.exception("Graph execution failed for case %s", case_id)
@@ -249,8 +309,14 @@ def assess(
 
 
 @app.get("/api/cases")
-def cases(limit: int = 50):
-    return {"cases": db.list_cases(min(max(limit, 1), 200))}
+def cases(limit: int = 50, authorization: Optional[str] = Header(default=None)):
+    """Case queue. Authenticated requests see only their own cases;
+    anonymous requests see the shared demo queue."""
+    username = _user_from_header(authorization)
+    return {
+        "cases": db.list_cases(min(max(limit, 1), 200), username=username),
+        "username": username,
+    }
 
 
 @app.get("/api/cases/{case_id}")
