@@ -17,6 +17,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Optional
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
@@ -45,7 +47,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("dermatriage.api")
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    ensure_runtime_dirs()
+    db.init_db()
+    logger.info("DermaTriage API started (reasoning model: %s).", OLLAMA_MODEL)
+    yield
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="DermaTriage",
     description=(
         "Triage-support prototype. NOT a diagnostic system, NOT a medical "
@@ -73,13 +84,6 @@ _NODE_NAMES = {
     "reason": "reasoning",
     "safety": "safety",
 }
-
-
-@app.on_event("startup")
-def _startup() -> None:
-    ensure_runtime_dirs()
-    db.init_db()
-    logger.info("DermaTriage API started (reasoning model: %s).", OLLAMA_MODEL)
 
 
 def _dump(value: Any) -> Any:

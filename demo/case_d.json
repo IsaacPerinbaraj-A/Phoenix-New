@@ -1,0 +1,12 @@
+{
+  "_description": "Case D - reasoning failure (run with DERMATRIAGE_SIMULATE_LLM_FAILURE=true; R8 fires, instruction still renders)",
+  "_image": null,
+  "age": 52,
+  "fitzpatrick": 2,
+  "duration_months": 30,
+  "changed_recently": false,
+  "bleeding": false,
+  "itching": false,
+  "body_site": "hand",
+  "family_history_melanoma": false
+}

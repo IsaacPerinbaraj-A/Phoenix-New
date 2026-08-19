@@ -1,0 +1,12 @@
+{
+  "_description": "Case B - deterministic safety override (bleeding forces URGENT via R1_BLEEDING)",
+  "_image": "demo/images/sharp_synthetic.png",
+  "age": 34,
+  "fitzpatrick": 3,
+  "duration_months": 18,
+  "changed_recently": false,
+  "bleeding": true,
+  "itching": false,
+  "body_site": "back",
+  "family_history_melanoma": false
+}

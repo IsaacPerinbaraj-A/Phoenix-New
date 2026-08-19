@@ -26,6 +26,9 @@ backend/runtime/
 *.sqlite3
 *.db
 
+# Generated demo images (recreate with scripts/make_demo_images.py)
+demo/images/
+
 # Evaluation outputs (regenerate with eval scripts; never hand-edit)
 eval/out/
 

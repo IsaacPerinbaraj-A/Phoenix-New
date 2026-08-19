@@ -1,0 +1,12 @@
+{
+  "_description": "Case C - blurry image rejection (vision agent visibly skipped)",
+  "_image": "demo/images/blurry.png",
+  "age": 45,
+  "fitzpatrick": 5,
+  "duration_months": 24,
+  "changed_recently": false,
+  "bleeding": false,
+  "itching": true,
+  "body_site": "leg",
+  "family_history_melanoma": false
+}

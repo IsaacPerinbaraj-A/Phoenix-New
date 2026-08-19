@@ -1,4 +1,4 @@
-"""LangGraph pipeline: five named nodes with conditional ingestion routing.
+r"""LangGraph pipeline: five named nodes with conditional ingestion routing.
 
 Topology:
 

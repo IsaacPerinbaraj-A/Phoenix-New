@@ -1,0 +1,12 @@
+{
+  "_description": "Case A - low concern demonstration (synthetic questionnaire)",
+  "_image": "demo/images/sharp_synthetic.png",
+  "age": 28,
+  "fitzpatrick": 4,
+  "duration_months": 36,
+  "changed_recently": false,
+  "bleeding": false,
+  "itching": false,
+  "body_site": "arm",
+  "family_history_melanoma": false
+}
