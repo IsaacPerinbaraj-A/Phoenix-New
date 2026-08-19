@@ -76,6 +76,24 @@ export default function ResultCard({ result }) {
         <p className="mt-1 text-sm font-medium">{band.sub}</p>
       </div>
 
+      {/* Photograph-not-used notice: qualifies the whole result */}
+      {result.image_ok === false && (
+        <div
+          role="alert"
+          className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4"
+        >
+          <p className="font-bold text-amber-900">
+            📷 The photograph was not used
+            {result.quality_note ? `: ${result.quality_note}` : "."}
+          </p>
+          <p className="mt-1 text-sm text-amber-800">
+            This result is based on the patient's answers only. For a
+            stronger assessment, retake the photo in good light, hold the
+            phone steady, and assess the case again.
+          </p>
+        </div>
+      )}
+
       {/* 2. Action instruction — deterministic template text */}
       <div className="rounded-xl border-2 border-slate-800 bg-white p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">

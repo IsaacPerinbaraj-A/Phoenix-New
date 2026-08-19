@@ -22,6 +22,7 @@ const EMPTY_QUESTIONNAIRE = {
 export default function AssessPage() {
   const [phase, setPhase] = useState("form"); // form | running | done | error
   const [imageFile, setImageFile] = useState(null);
+  const [photoLooksBlurry, setPhotoLooksBlurry] = useState(false);
   const [questionnaire, setQuestionnaire] = useState(EMPTY_QUESTIONNAIRE);
   const [events, setEvents] = useState([]);
   const [result, setResult] = useState(null);
@@ -49,6 +50,17 @@ export default function AssessPage() {
     if (problem) {
       setError(problem);
       return;
+    }
+    // The photo pre-check flagged blur: give the worker a real chance to
+    // retake before running an answers-only assessment. Never a hard block —
+    // a case must always be assessable even when a better photo is impossible.
+    if (imageFile && photoLooksBlurry) {
+      const proceed = window.confirm(
+        "The selected photo looks blurry and will likely be rejected.\n\n" +
+          "OK — assess anyway (the result will use the answers only)\n" +
+          "Cancel — go back and retake the photo"
+      );
+      if (!proceed) return;
     }
     setError(null);
     setEvents([]);
@@ -125,7 +137,11 @@ export default function AssessPage() {
         <div className="lg:col-span-2">
           <form onSubmit={handleSubmit} className="space-y-6">
             <fieldset disabled={phase === "running"} className="space-y-6">
-              <PhotoUpload file={imageFile} onChange={setImageFile} />
+              <PhotoUpload
+                file={imageFile}
+                onChange={setImageFile}
+                onQualityWarning={setPhotoLooksBlurry}
+              />
               <Questionnaire value={questionnaire} onChange={setQuestionnaire} />
             </fieldset>
 
