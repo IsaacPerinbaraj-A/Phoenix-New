@@ -61,7 +61,9 @@ def synthesize(meta: pd.DataFrame, rng: np.random.Generator) -> pd.DataFrame:
     n = len(meta)
     malignant = meta["dx"].isin(MALIGNANT).to_numpy()
 
-    age = meta["age"].to_numpy(dtype=float)
+    # copy=True: pandas 3.x may hand back a read-only view, and the missing
+    # ages are filled in place below.
+    age = meta["age"].to_numpy(dtype=float, copy=True)
     missing = np.isnan(age)
     age[missing] = np.clip(rng.normal(50, 15, missing.sum()), 5, 90)
 
