@@ -4,47 +4,55 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Neutral scale (warm gray)
-        page: "#FAFAF9",
-        ink: {
-          DEFAULT: "#1C1917",
-          secondary: "#57534E",
-          muted: "#78716C",
-          faint: "#A8A29E",
-        },
-        line: {
-          DEFAULT: "#E7E5E4",
-          strong: "#D6D3D1",
-        },
-        // Single brand color, used sparingly
+        // Brand — clinical blue, navy for headings/nav accents, teal accent
         brand: {
-          50: "#EEF2FB",
-          100: "#DCE5F7",
-          500: "#3D63C9",
-          600: "#2F52B3",
-          700: "#274494",
+          50: "#EFF6FF",
+          100: "#DBEAFE",
+          500: "#3B82F6",
+          600: "#2563EB",
+          700: "#1D4ED8",
         },
-        // Muted semantic urgency colors (WCAG AA on their tints)
-        urgent: { text: "#B42318", bg: "#FEF3F2", line: "#F0C4BE", dot: "#D92D20" },
-        review: { text: "#B54708", bg: "#FFF6ED", line: "#F2D3AC", dot: "#EA700D" },
-        monitor: { text: "#854D0E", bg: "#FEFCE8", line: "#E8DCA5", dot: "#CA9A04" },
-        inconclusive: { text: "#44403C", bg: "#F5F5F4", line: "#D6D3D1", dot: "#78716C" },
-        ok: { text: "#067647", bg: "#ECFDF3", line: "#B7E5C8", dot: "#17B26A" },
-        // Dark shell (navbar / hero)
-        navy: {
-          DEFAULT: "#14171F",
-          soft: "#1B1F2A",
-          line: "#2A2F3D",
-          text: "#9CA3AF",
+        navy: "#163A5F",
+        teal: "#0F766E",
+        // Surfaces
+        surface: {
+          bg: "#F7F9FC",
+          card: "#FFFFFF",
+          muted: "#F2F4F7",
         },
+        // Text
+        ink: {
+          DEFAULT: "#172033",
+          secondary: "#667085",
+          muted: "#98A2B3",
+          faint: "#B6BDCA",
+        },
+        page: "#F7F9FC",
+        // Borders
+        line: {
+          DEFAULT: "#E5EAF0",
+          strong: "#D0D5DD",
+        },
+        // Result bands (colour is never the only indicator)
+        urgent: { text: "#B42318", bg: "#FEF2F2", line: "#FECACA", dot: "#D92D20" },
+        review: { text: "#C2410C", bg: "#FFF7ED", line: "#FED7AA", dot: "#EA580C" },
+        monitor: { text: "#027A48", bg: "#ECFDF3", line: "#ABEFC6", dot: "#12B76A" },
+        inconclusive: { text: "#475467", bg: "#F2F4F7", line: "#D0D5DD", dot: "#667085" },
+        ok: { text: "#027A48", bg: "#ECFDF3", line: "#ABEFC6", dot: "#12B76A" },
       },
       fontFamily: {
-        sans: ['"Instrument Sans"', "system-ui", "-apple-system", "sans-serif"],
-        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
+        sans: ["Manrope", "Inter", "system-ui", "-apple-system", "sans-serif"],
+      },
+      borderRadius: {
+        card: "16px",
+        hero: "20px",
       },
       boxShadow: {
-        card: "0 1px 2px rgba(28, 25, 23, 0.04)",
-        raised: "0 1px 3px rgba(28, 25, 23, 0.07), 0 1px 2px rgba(28, 25, 23, 0.04)",
+        card: "0 1px 2px rgba(23, 32, 51, 0.04), 0 1px 3px rgba(23, 32, 51, 0.03)",
+        raised: "0 4px 12px rgba(23, 32, 51, 0.06)",
+      },
+      maxWidth: {
+        shell: "1200px",
       },
     },
   },

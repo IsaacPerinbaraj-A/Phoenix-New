@@ -9,6 +9,53 @@ import PhotoUpload from "../components/PhotoUpload.jsx";
 import Questionnaire, { BODY_SITES } from "../components/Questionnaire.jsx";
 import { clearLastRun, loadLastRun, saveLastRun } from "../lastRun.js";
 
+function ProgressRail({ imageFile, questionnaire }) {
+  const questionsDone =
+    questionnaire.age !== "" &&
+    questionnaire.duration_months !== "" &&
+    [
+      questionnaire.changed_recently,
+      questionnaire.bleeding,
+      questionnaire.itching,
+      questionnaire.family_history_melanoma,
+    ].every((v) => typeof v === "boolean");
+
+  const steps = [
+    ["Photo", !!imageFile, "Optional"],
+    ["Questions", questionsDone, "Required"],
+    ["Review", false, "Runs automatically"],
+  ];
+
+  return (
+    <div className="card p-4">
+      <p className="eyebrow">Your progress</p>
+      <ol className="mt-3 space-y-2.5">
+        {steps.map(([label, done, hint]) => (
+          <li key={label} className="flex items-center gap-2.5">
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full border ${
+                done
+                  ? "border-ok-line bg-ok-bg text-ok-text"
+                  : "border-line bg-surface-muted text-ink-muted"
+              }`}
+            >
+              {done ? (
+                <Icon name="check" size={13} strokeWidth={2.2} />
+              ) : (
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+              )}
+            </span>
+            <span className={`text-sm font-semibold ${done ? "text-ink" : "text-ink-secondary"}`}>
+              {label}
+            </span>
+            <span className="ml-auto text-xs text-ink-muted">{hint}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function CaseSummary({ questionnaire, hasImage, phase, onReset }) {
   const site =
     BODY_SITES.find(([v]) => v === questionnaire.body_site)?.[1] ||
@@ -215,17 +262,18 @@ export default function AssessPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+    <div className="mx-auto max-w-shell px-4 py-8">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-ink">New assessment</h1>
-          <p className="mt-0.5 text-[13px] text-ink-muted">
-            One photograph + eight questions → an urgency recommendation.
+          <h1 className="text-2xl font-bold tracking-tight text-navy">New assessment</h1>
+          <p className="mt-1 text-sm text-ink-secondary">
+            Help us understand the situation — one photograph and eight quick
+            questions.
           </p>
         </div>
         {!user && (
-          <p className="text-[13px] text-ink-muted">
-            <Link to="/login" className="font-medium text-brand-600 hover:underline">
+          <p className="text-sm text-ink-secondary">
+            <Link to="/login" className="font-semibold text-brand-600 hover:underline">
               Log in
             </Link>{" "}
             to save this case to your history.
@@ -283,12 +331,15 @@ export default function AssessPage() {
         {/* Right: live pipeline + result */}
         <div ref={pipelineRef} className="scroll-mt-20 space-y-4 lg:col-span-3">
           {phase === "form" && (
-            <div className="hidden h-full min-h-[280px] items-center justify-center rounded-lg border border-dashed border-line-strong lg:flex">
-              <div className="text-center text-ink-faint">
-                <Icon name="activity" size={24} className="mx-auto" />
-                <p className="mt-2 text-sm font-medium">
-                  The live agent pipeline and result will appear here.
-                </p>
+            <div className="hidden space-y-4 lg:block">
+              <ProgressRail imageFile={imageFile} questionnaire={questionnaire} />
+              <div className="flex min-h-[220px] items-center justify-center rounded-card border-2 border-dashed border-line-strong">
+                <div className="px-6 text-center text-ink-muted">
+                  <Icon name="activity" size={22} className="mx-auto" />
+                  <p className="mt-2 text-sm font-semibold">
+                    The live agent pipeline and result will appear here.
+                  </p>
+                </div>
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getClinicianQueue, getModelInfo, getStats, setCaseStatus } from "../api.js";
 import { isClinician } from "../auth.js";
@@ -24,13 +24,13 @@ function formatDate(iso) {
 
 function pct(value) {
   return value === null || value === undefined
-    ? "—"
+    ? "â€”"
     : `${(value * 100).toFixed(1)}%`;
 }
 
 function StatTile({ label, value, sub, dot }) {
   return (
-    <div className="card p-3.5">
+    <div className="card p-4">
       <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
         {dot && <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
         {label}
@@ -95,7 +95,7 @@ export default function ClinicianDashboard() {
           <div className="mt-4 rounded-md border border-brand-100 bg-brand-50 p-3 text-left text-[13px]">
             <p className="font-semibold text-brand-700">Demo clinician account</p>
             <p className="num mt-0.5 text-xs text-ink-secondary">
-              username: clinician · password: clinic123
+              username: clinician Â· password: clinic123
             </p>
           </div>
           <Link to="/login" className="btn-primary mt-4 w-full">
@@ -107,14 +107,13 @@ export default function ClinicianDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-shell px-4 py-8">
       <div className="mb-5">
-        <h1 className="text-xl font-semibold tracking-tight text-ink">
-          Clinician dashboard
+        <h1 className="text-2xl font-bold tracking-tight text-navy">Clinician dashboard
         </h1>
         <p className="mt-0.5 text-[13px] text-ink-muted">
           All assessed cases, ordered by a deterministic priority score
-          (band-dominated). Not a validated clinical score — an ordering aid
+          (band-dominated). Not a validated clinical score â€” an ordering aid
           for review.
         </p>
       </div>
@@ -148,7 +147,7 @@ export default function ClinicianDashboard() {
         </div>
       )}
 
-      {/* Model benchmarks — real evaluation results only */}
+      {/* Model benchmarks â€” real evaluation results only */}
       <div className="mb-6 grid gap-3 lg:grid-cols-2">
         <div className="card p-4">
           <p className="section-label">Vision model benchmark (HAM10000 test split)</p>
@@ -171,7 +170,7 @@ export default function ClinicianDashboard() {
             <p className="mt-2 text-sm font-medium text-ink-faint">Not yet evaluated</p>
           )}
           <p className="mt-2 text-[11px] text-ink-faint">
-            Dermatoscopic benchmark — does not transfer directly to smartphone
+            Dermatoscopic benchmark â€” does not transfer directly to smartphone
             photos.
           </p>
         </div>
@@ -196,7 +195,7 @@ export default function ClinicianDashboard() {
             <p className="mt-2 text-sm font-medium text-ink-faint">Not yet evaluated</p>
           )}
           <p className="mt-2 text-[11px] text-ink-faint">
-            Trained on synthetic questionnaires — pipeline validation, not
+            Trained on synthetic questionnaires â€” pipeline validation, not
             clinical validation.
           </p>
         </div>
@@ -236,7 +235,7 @@ export default function ClinicianDashboard() {
                 return (
                   <tr
                     key={c.case_id}
-                    className="border-b border-line transition-colors duration-150 last:border-0 hover:bg-page"
+                    className="border-b border-line transition-colors duration-150 last:border-0 hover:bg-surface-bg"
                   >
                     <td className="table-td text-right">
                       <span className="inline-flex items-center gap-1.5">
@@ -262,7 +261,7 @@ export default function ClinicianDashboard() {
                           </span>
                         </span>
                       ) : (
-                        <span className="text-ink-faint">—</span>
+                        <span className="text-ink-faint">â€”</span>
                       )}
                     </td>
                     <td className="table-td num text-right text-ink-secondary">
@@ -272,7 +271,7 @@ export default function ClinicianDashboard() {
                       {c.image_ok ? (
                         <Icon name="check" size={14} className="text-ok-text" />
                       ) : (
-                        <span className="text-ink-faint">—</span>
+                        <span className="text-ink-faint">â€”</span>
                       )}
                     </td>
                     <td className="table-td text-xs text-ink-muted">
@@ -314,3 +313,5 @@ export default function ClinicianDashboard() {
     </div>
   );
 }
+
+

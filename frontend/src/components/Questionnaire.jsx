@@ -1,3 +1,5 @@
+import Icon from "./Icon.jsx";
+
 export const BODY_SITES = [
   ["head_neck", "Head / neck"],
   ["face", "Face"],
@@ -26,51 +28,64 @@ const FITZPATRICK = [
 
 const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
 
+function AnswerCard({ selected, tone, onClick, children, ariaChecked }) {
+  const toneStyles =
+    tone === "yes"
+      ? "border-urgent-line bg-urgent-bg text-urgent-text"
+      : "border-ok-line bg-ok-bg text-ok-text";
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={ariaChecked}
+      onClick={onClick}
+      className={`relative flex h-14 items-center justify-center rounded-xl border-2 text-base font-bold transition-colors duration-150 ${
+        selected
+          ? toneStyles
+          : "border-line bg-surface-card text-ink-secondary hover:border-line-strong hover:bg-surface-muted"
+      }`}
+    >
+      {selected && (
+        <span className="absolute left-3 top-1/2 -translate-y-1/2">
+          <Icon name="check" size={16} strokeWidth={2.2} />
+        </span>
+      )}
+      {children}
+    </button>
+  );
+}
+
 function YesNo({ label, value, onChange }) {
   // value: true | false | null (null = not answered yet — answering is
   // required, so a worker cannot accidentally submit all-"No").
   const unanswered = value !== true && value !== false;
   return (
-    <div className="card p-3.5">
-      <p className="text-[13px] font-medium leading-snug text-ink">
+    <div className="card p-4">
+      <p className="text-[15px] font-semibold leading-snug text-ink">
         {label}
         {unanswered && (
-          <span className="ml-1.5 text-xs font-normal text-ink-faint">(choose one)</span>
+          <span className="ml-1.5 text-[13px] font-normal text-ink-muted">
+            (choose one)
+          </span>
         )}
       </p>
-      <div
-        className="mt-2.5 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line-strong bg-line-strong"
-        role="radiogroup"
-        aria-label={label}
-      >
-        <button
-          type="button"
-          role="radio"
-          aria-checked={value === true}
+      <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label={label}>
+        <AnswerCard
+          selected={value === true}
+          ariaChecked={value === true}
+          tone="yes"
           onClick={() => onChange(true)}
-          className={`flex h-10 items-center justify-center gap-1.5 text-sm font-medium transition-colors duration-150 ${
-            value === true
-              ? "bg-urgent-bg text-urgent-text"
-              : "bg-white text-ink-secondary hover:bg-stone-50"
-          }`}
         >
-          {value === true && <span className="h-1.5 w-1.5 rounded-full bg-urgent-dot" />}
           Yes
-        </button>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={value === false}
+        </AnswerCard>
+        <AnswerCard
+          selected={value === false}
+          ariaChecked={value === false}
+          tone="no"
           onClick={() => onChange(false)}
-          className={`flex h-10 items-center justify-center gap-1.5 text-sm font-medium transition-colors duration-150 ${
-            value === false
-              ? "bg-ok-bg text-ok-text"
-              : "bg-white text-ink-secondary hover:bg-stone-50"
-          }`}
         >
-          {value === false && <span className="h-1.5 w-1.5 rounded-full bg-ok-dot" />}
           No
-        </button>
+        </AnswerCard>
       </div>
     </div>
   );
@@ -83,15 +98,15 @@ export default function Questionnaire({ value, onChange }) {
   return (
     <section aria-labelledby="questions-heading" className="space-y-4">
       <div>
-        <h2 id="questions-heading" className="text-base font-semibold tracking-tight text-ink">
-          Patient history
+        <h2 id="questions-heading" className="text-lg font-semibold tracking-tight text-ink">
+          2. Patient history
         </h2>
-        <p className="text-[13px] text-ink-muted">Eight quick questions</p>
+        <p className="text-sm text-ink-secondary">Eight quick questions</p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink">Age (years)</span>
+          <span className="mb-1.5 block text-sm font-semibold text-ink">Age (years)</span>
           <input
             type="number"
             min="0"
@@ -104,7 +119,7 @@ export default function Questionnaire({ value, onChange }) {
         </label>
 
         <label className="block">
-          <span className="mb-1.5 block text-[13px] font-medium text-ink">
+          <span className="mb-1.5 block text-sm font-semibold text-ink">
             How many months has it been there?
           </span>
           <input
@@ -120,9 +135,9 @@ export default function Questionnaire({ value, onChange }) {
       </div>
 
       <div>
-        <p className="mb-1.5 text-[13px] font-medium text-ink">Skin type (Fitzpatrick 1–6)</p>
+        <p className="mb-1.5 text-sm font-semibold text-ink">Skin type (Fitzpatrick 1–6)</p>
         <div
-          className="grid grid-cols-6 gap-px overflow-hidden rounded-md border border-line-strong bg-line-strong"
+          className="grid grid-cols-6 gap-1.5"
           role="radiogroup"
           aria-label="Fitzpatrick skin type"
         >
@@ -134,10 +149,10 @@ export default function Questionnaire({ value, onChange }) {
               aria-checked={value.fitzpatrick === n}
               aria-label={desc}
               onClick={() => set("fitzpatrick", n)}
-              className={`flex h-12 flex-col items-center justify-center gap-1 transition-colors duration-150 ${
+              className={`flex h-14 flex-col items-center justify-center gap-1 rounded-xl border-2 transition-colors duration-150 ${
                 value.fitzpatrick === n
-                  ? "bg-brand-50 ring-1 ring-inset ring-brand-500"
-                  : "bg-white hover:bg-stone-50"
+                  ? "border-brand-600 bg-brand-50"
+                  : "border-line bg-surface-card hover:border-line-strong"
               }`}
             >
               <span
@@ -146,7 +161,7 @@ export default function Questionnaire({ value, onChange }) {
                 style={{ backgroundColor: hex }}
               />
               <span
-                className={`text-[11px] font-semibold ${
+                className={`text-xs font-bold ${
                   value.fitzpatrick === n ? "text-brand-700" : "text-ink-muted"
                 }`}
               >
@@ -156,12 +171,12 @@ export default function Questionnaire({ value, onChange }) {
           ))}
         </div>
         {selectedFitz && (
-          <p className="mt-1.5 text-xs text-ink-muted">{selectedFitz[2]}</p>
+          <p className="mt-1.5 text-[13px] text-ink-secondary">{selectedFitz[2]}</p>
         )}
       </div>
 
       <label className="block">
-        <span className="mb-1.5 block text-[13px] font-medium text-ink">
+        <span className="mb-1.5 block text-sm font-semibold text-ink">
           Where on the body is it?
         </span>
         <select

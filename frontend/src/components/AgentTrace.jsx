@@ -1,19 +1,45 @@
 import Icon from "./Icon.jsx";
 
 const AGENTS = [
-  ["ingestion", "Ingestion", "Photo quality gate"],
-  ["vision", "Vision", "EfficientNet lesion analysis"],
-  ["history", "History", "Structured risk score"],
-  ["reasoning", "Reasoning", "LLM explanation (advisory)"],
-  ["safety", "Safety", "Deterministic final decision"],
+  ["ingestion", "Image Intake", "Photo quality gate"],
+  ["vision", "Vision Analysis", "EfficientNet lesion analysis"],
+  ["history", "History Analysis", "Structured risk score"],
+  ["reasoning", "Clinical Reasoning", "LLM explanation (advisory)"],
+  ["safety", "Safety Review", "Deterministic final decision"],
 ];
 
 const STATUS = {
-  waiting: { icon: "clock", cls: "text-ink-faint", label: "Waiting" },
-  running: { icon: "loader", cls: "text-brand-600", label: "Running…", spin: true },
-  completed: { icon: "check", cls: "text-ok-text", label: "Completed" },
-  skipped: { icon: "corner-down-right", cls: "text-ink-muted", label: "Skipped" },
-  failed_safe: { icon: "alert-triangle", cls: "text-review-text", label: "Failed safely" },
+  waiting: {
+    icon: "clock",
+    cls: "text-ink-muted",
+    badge: "border-line bg-surface-muted text-ink-muted",
+    label: "Waiting",
+  },
+  running: {
+    icon: "loader",
+    cls: "text-brand-600",
+    badge: "border-brand-100 bg-brand-50 text-brand-700",
+    label: "Running…",
+    spin: true,
+  },
+  completed: {
+    icon: "check",
+    cls: "text-ok-text",
+    badge: "border-ok-line bg-ok-bg text-ok-text",
+    label: "Completed",
+  },
+  skipped: {
+    icon: "corner-down-right",
+    cls: "text-ink-muted",
+    badge: "border-line bg-surface-muted text-ink-secondary",
+    label: "Skipped",
+  },
+  failed_safe: {
+    icon: "alert-triangle",
+    cls: "text-review-text",
+    badge: "border-review-line bg-review-bg text-review-text",
+    label: "Failed safely",
+  },
 };
 
 function Bar({ label, value, tone }) {
@@ -183,11 +209,11 @@ export default function AgentTrace({ events, running }) {
 
   return (
     <section aria-labelledby="trace-heading">
-      <p id="trace-heading" className="section-label mb-3">
-        Agent pipeline
+      <p id="trace-heading" className="eyebrow mb-3">
+        {running ? "Assessment in progress" : "Agent pipeline"}
       </p>
-      <ol className="card divide-y divide-line">
-        {AGENTS.map(([key, name, blurb]) => {
+      <ol>
+        {AGENTS.map(([key, name, blurb], i) => {
           const event = byAgent[key];
           let status = "waiting";
           if (event) {
@@ -201,47 +227,58 @@ export default function AgentTrace({ events, running }) {
           const meta = STATUS[status];
           const summary = event ? summarize(key, event.output) : null;
           return (
-            <li key={key} className="px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className={`shrink-0 ${meta.cls}`}>
-                    <Icon
-                      name={meta.icon}
-                      size={16}
-                      className={meta.spin ? "animate-spin" : ""}
-                    />
-                  </span>
-                  <span className="text-sm font-semibold text-ink">{name}</span>
-                  <span className="hidden truncate text-xs text-ink-muted lg:inline">
-                    {blurb}
-                  </span>
-                </div>
-                <div className="flex shrink-0 items-center gap-2.5 text-xs">
-                  {event?.elapsed_ms != null && (
-                    <span className="num text-ink-faint">{event.elapsed_ms} ms</span>
-                  )}
-                  <span className={`font-medium ${meta.cls}`}>{meta.label}</span>
-                </div>
-              </div>
-
-              {status === "skipped" && (
-                <p className="mt-1 pl-[26px] text-[13px] text-ink-secondary">
-                  Reason: {event?.reason || "Not needed for this case."}
-                </p>
-              )}
-              {summary && (
-                <p className="mt-1 pl-[26px] text-[13px] text-ink-secondary">{summary}</p>
-              )}
-
-              {event?.output && (
-                <details className="mt-1 pl-[26px]">
-                  <summary className="cursor-pointer text-xs font-medium text-ink-muted transition-colors duration-150 hover:text-ink-secondary">
-                    Details
-                  </summary>
-                  <div className="mt-2 rounded-md border border-line bg-page p-3">
-                    <AgentDetails agent={key} output={event.output} />
+            <li key={key}>
+              <div
+                className={`card p-4 transition-colors duration-150 ${
+                  status === "running" ? "border-brand-100 shadow-raised" : ""
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${meta.badge}`}
+                    >
+                      <Icon
+                        name={meta.icon}
+                        size={15}
+                        className={meta.spin ? "animate-spin" : ""}
+                      />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold text-ink">{name}</p>
+                      <p className="truncate text-xs text-ink-muted">{blurb}</p>
+                    </div>
                   </div>
-                </details>
+                  <div className="flex shrink-0 items-center gap-2.5 text-xs">
+                    {event?.elapsed_ms != null && (
+                      <span className="num text-ink-muted">{event.elapsed_ms} ms</span>
+                    )}
+                    <span className={`font-semibold ${meta.cls}`}>{meta.label}</span>
+                  </div>
+                </div>
+
+                {status === "skipped" && (
+                  <p className="mt-2 pl-11 text-sm text-ink-secondary">
+                    Reason: {event?.reason || "Not needed for this case."}
+                  </p>
+                )}
+                {summary && (
+                  <p className="mt-2 pl-11 text-sm text-ink-secondary">{summary}</p>
+                )}
+
+                {event?.output && (
+                  <details className="mt-1.5 pl-11">
+                    <summary className="cursor-pointer text-xs font-semibold text-ink-muted transition-colors duration-150 hover:text-ink-secondary">
+                      Details
+                    </summary>
+                    <div className="mt-2 rounded-xl border border-line bg-surface-bg p-3.5">
+                      <AgentDetails agent={key} output={event.output} />
+                    </div>
+                  </details>
+                )}
+              </div>
+              {i < AGENTS.length - 1 && (
+                <div className="ml-8 h-4 w-px bg-line-strong" aria-hidden="true" />
               )}
             </li>
           );
@@ -251,14 +288,14 @@ export default function AgentTrace({ events, running }) {
       {overridden && (
         <div
           role="alert"
-          className="mt-3 flex items-start gap-2.5 rounded-lg border border-urgent-line border-l-4 border-l-urgent-dot bg-urgent-bg px-4 py-3"
+          className="mt-4 flex items-start gap-3 rounded-card border border-urgent-line bg-urgent-bg p-4"
         >
-          <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-urgent-text" />
+          <Icon name="shield" size={18} className="mt-0.5 shrink-0 text-urgent-text" />
           <div>
-            <p className="text-sm font-semibold text-urgent-text">
+            <p className="text-[15px] font-semibold text-urgent-text">
               Safety override: {advisory} → {finalBand}
             </p>
-            <p className="mt-0.5 text-[13px] text-urgent-text/90">
+            <p className="mt-0.5 text-sm text-urgent-text/90">
               Triggered: {byAgent.safety.output.safety_triggers.join(", ")}
             </p>
             <p className="mt-1 text-xs text-urgent-text/70">

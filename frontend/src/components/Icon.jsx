@@ -1,8 +1,24 @@
-// Single inline-SVG icon set (Lucide-style: 24 viewBox, stroke 1.5,
+// Single inline-SVG icon set (Lucide-style: 24 viewBox, stroke 1.8,
 // round caps). Usage: <Icon name="camera" size={16} className="..." />
 
 const PATHS = {
   activity: [<path key="a" d="M22 12h-4l-3 8-6-16-3 8H2" />],
+  house: [
+    <path key="a" d="m3 10 9-7 9 7v9a2 2 0 0 1-2 2h-4v-7h-6v7H5a2 2 0 0 1-2-2v-9z" />,
+  ],
+  stethoscope: [
+    <path key="a" d="M5 3v6a5 5 0 0 0 10 0V3" />,
+    <path key="b" d="M10 14v2a5 5 0 0 0 10 0v-2" />,
+    <circle key="c" cx="20" cy="12" r="2" />,
+  ],
+  "check-circle": [
+    <circle key="a" cx="12" cy="12" r="9" />,
+    <path key="b" d="m8.5 12.5 2.5 2.5 4.5-5" />,
+  ],
+  lens: [
+    <circle key="a" cx="12" cy="12" r="8" />,
+    <circle key="b" cx="12" cy="12" r="3" />,
+  ],
   "alert-triangle": [
     <path
       key="a"
@@ -107,7 +123,7 @@ const PATHS = {
   x: [<path key="a" d="M18 6 6 18" />, <path key="b" d="m6 6 12 12" />],
 };
 
-export default function Icon({ name, size = 16, className = "", strokeWidth = 1.5 }) {
+export default function Icon({ name, size = 16, className = "", strokeWidth = 1.8 }) {
   const paths = PATHS[name];
   if (!paths) return null;
   return (

@@ -22,9 +22,12 @@ export default function CaseDetailPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight text-ink">
-          {fromAssessment ? "Assessment result" : "Case review"}
-        </h1>
+        <div>
+          {fromAssessment && <p className="eyebrow">Assessment complete</p>}
+          <h1 className="text-2xl font-bold tracking-tight text-navy">
+            {fromAssessment ? "Assessment result" : "Case review"}
+          </h1>
+        </div>
         <div className="flex gap-2">
           {fromAssessment ? (
             <Link to="/assess" className="btn-primary h-9 px-3 text-[13px]">

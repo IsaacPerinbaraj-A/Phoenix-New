@@ -1,42 +1,28 @@
 import { Link } from "react-router-dom";
-import Disclaimer from "../components/Disclaimer.jsx";
 import Icon from "../components/Icon.jsx";
-import { BAND_META } from "../components/BandPill.jsx";
 
-const AGENTS = [
-  ["camera", "Ingestion", "Checks the photograph is sharp and well-lit before analysis."],
-  ["focus", "Vision", "EfficientNet-B0 trained on HAM10000 estimates lesion class probabilities."],
-  ["clipboard", "History", "An XGBoost model scores the eight-question patient history — works fully offline."],
-  ["message-square", "Reasoning", "A local LLM writes a plain-language ABCDE explanation. Advisory only."],
-  ["shield", "Safety Verifier", "Pure-Python deterministic rules make the final call — and can only escalate."],
+const FLOW_STEPS = ["Photo / Symptoms", "AI Assessment", "Safety Review", "Recommended Step"];
+
+const STEPS = [
+  ["01", "Share information", "Upload a photo and answer eight quick questions about the lesion."],
+  ["02", "Review signals", "SkinSight processes image and questionnaire signals through five agents."],
+  ["03", "See the next step", "Receive an urgency recommendation with supporting information."],
 ];
 
 export default function Landing() {
   return (
     <div>
       {/* Hero */}
-      <section
-        className="border-b border-navy-line bg-navy px-4 py-20 text-white"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)",
-          backgroundSize: "24px 24px",
-        }}
-      >
-        <div className="mx-auto max-w-6xl">
-          <div className="max-w-2xl">
-            <p className="section-label !text-navy-text">
-              Multi-agent skin lesion triage support
-            </p>
-            <h1 className="mt-4 text-4xl font-semibold leading-[1.15] tracking-tight sm:text-[44px]">
-              Know how soon to see a doctor.
-              <br />
-              <span className="text-navy-text">Never guess what it is.</span>
+      <section className="border-b border-line bg-surface-card px-4 py-16 lg:py-20">
+        <div className="mx-auto grid max-w-shell items-center gap-10 lg:grid-cols-2">
+          <div>
+            <p className="eyebrow">Skin lesion triage support</p>
+            <h1 className="mt-4 text-4xl font-bold leading-[1.12] tracking-tight text-navy sm:text-5xl">
+              Understand your skin concern with structured guidance.
             </h1>
-            <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-navy-text">
-              SkinSight helps community health workers turn one lesion
-              photograph and eight quick questions into a clear urgency
-              recommendation. Five AI agents analyse the case — and a
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-secondary">
+              SkinSight helps organise image and symptom information to support
+              appropriate next steps. Five AI agents analyse each case — and a
               deterministic safety engine, not the AI, always makes the final
               decision.
             </p>
@@ -45,31 +31,75 @@ export default function Landing() {
                 Start an assessment
                 <Icon name="arrow-right" size={16} />
               </Link>
-              <Link
-                to="/register"
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-navy-line px-4 text-sm font-medium text-white transition-colors duration-150 hover:bg-navy-soft"
-              >
-                Create an account
-              </Link>
+              <a href="#how-it-works" className="btn-secondary">
+                View how it works
+              </a>
             </div>
-            <p className="mt-8 flex items-start gap-2 border-l-2 border-review-dot pl-3 text-[13px] leading-relaxed text-navy-text">
+            <p className="mt-8 flex items-start gap-2 text-sm text-ink-secondary">
+              <Icon name="alert-triangle" size={16} className="mt-0.5 shrink-0 text-review-dot" />
               <span>
-                This is not a diagnosis. Only a doctor can tell you what it is.
-                Every result routes the patient toward professional care.
+                <strong className="font-semibold text-ink">This is not a diagnosis.</strong>{" "}
+                Only a doctor can tell you what it is.
               </span>
             </p>
+          </div>
+
+          {/* Analysis flow card */}
+          <div className="mx-auto w-full max-w-sm">
+            <div className="card rounded-hero p-6 shadow-raised">
+              <p className="eyebrow text-center">Analysis flow</p>
+              <div className="mt-5 space-y-0">
+                {FLOW_STEPS.map((step, i) => (
+                  <div key={step}>
+                    <div className="flex items-center gap-3 rounded-xl border border-line bg-surface-bg px-4 py-3">
+                      <span
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                          i === FLOW_STEPS.length - 1
+                            ? "bg-brand-600 text-white"
+                            : "bg-brand-100 text-brand-700"
+                        }`}
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="text-sm font-semibold text-ink">{step}</span>
+                    </div>
+                    {i < FLOW_STEPS.length - 1 && (
+                      <div className="mx-auto h-4 w-px bg-line-strong" aria-hidden="true" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Three-step explanation */}
+      <section id="how-it-works" className="scroll-mt-20 px-4 py-16">
+        <div className="mx-auto max-w-shell">
+          <h2 className="text-center text-2xl font-bold tracking-tight text-navy sm:text-3xl">
+            How it works
+          </h2>
+          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            {STEPS.map(([n, title, blurb]) => (
+              <div key={n} className="card p-6">
+                <span className="num text-sm font-bold text-brand-600">{n}</span>
+                <p className="mt-3 text-lg font-semibold text-ink">{title}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-ink-secondary">{blurb}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Principle */}
-      <section className="px-4 py-14">
-        <div className="mx-auto max-w-6xl">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-xl font-semibold tracking-tight text-ink">
+      <section className="px-4 pb-16">
+        <div className="mx-auto max-w-shell">
+          <div className="card rounded-hero bg-surface-card p-8 text-center">
+            <h2 className="text-xl font-bold tracking-tight text-navy">
               The LLM explains. Deterministic rules decide.
             </h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-ink-secondary">
               Machine-learning models contribute evidence and explanations, but
               the final urgency band and the action instruction come only from
               auditable, pure-Python safety rules that can never lower urgency.
@@ -78,68 +108,21 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Five agents */}
-      <section className="px-4 pb-14">
-        <div className="mx-auto max-w-6xl">
-          <p className="section-label mb-4">How a case flows through the five agents</p>
-          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {AGENTS.map(([icon, name, blurb], i) => (
-              <li key={name} className="card p-4">
-                <div className="flex items-center justify-between">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-50 text-brand-600">
-                    <Icon name={icon} size={16} />
-                  </span>
-                  <span className="num text-[11px] text-ink-faint">0{i + 1}</span>
-                </div>
-                <p className="mt-3 text-sm font-semibold text-ink">{name}</p>
-                <p className="mt-1 text-[13px] leading-relaxed text-ink-secondary">{blurb}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* Bands */}
-      <section className="px-4 pb-14">
-        <div className="mx-auto max-w-6xl">
-          <p className="section-label mb-4">Every case ends in exactly one urgency band</p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {Object.entries(BAND_META).map(([key, m]) => (
-              <div
-                key={key}
-                className={`rounded-lg border border-l-4 bg-white p-4 shadow-card ${m.line} ${m.accent}`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${m.dot}`} />
-                  <p className={`text-sm font-semibold ${m.text}`}>{m.label}</p>
-                </div>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">{m.sub}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Honest limitations */}
-      <section className="px-4 pb-16">
-        <div className="mx-auto max-w-6xl space-y-3">
-          <Disclaimer />
-          <div className="card p-4">
-            <p className="section-label">Honest limitations</p>
-            <ul className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-ink-secondary">
-              <li className="flex gap-2">
-                <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-ink-faint" />
-                Hackathon research prototype — not a medical device, not clinically validated.
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-ink-faint" />
-                The vision model is trained on dermatoscopic images; smartphone photos differ (documented domain gap).
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-ink-faint" />
-                Training data under-represents darker skin tones; image-independent safety rules mitigate but do not eliminate this.
-              </li>
-            </ul>
+      {/* Safety section */}
+      <section className="px-4 pb-20">
+        <div className="mx-auto max-w-shell">
+          <div className="flex items-start gap-3 rounded-card border border-review-line bg-review-bg p-6">
+            <Icon name="info" size={18} className="mt-0.5 shrink-0 text-review-text" />
+            <div>
+              <p className="text-base font-semibold text-review-text">Important</p>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-review-text/90">
+                SkinSight is a prototype and not a medical device. It provides
+                advisory support, not a diagnosis. The vision model is trained
+                on dermatoscopic images and its training data under-represents
+                darker skin tones; every result routes the patient toward
+                professional care, never away from it.
+              </p>
+            </div>
           </div>
         </div>
       </section>
