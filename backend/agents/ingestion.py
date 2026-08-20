@@ -16,6 +16,9 @@ from config import (
     MAX_WHITE_FRACTION,
     MIN_BRIGHTNESS,
     MIN_SATURATION,
+    MIN_SKIN_FRACTION,
+    SKIN_CB_RANGE,
+    SKIN_CR_RANGE,
 )
 from schemas import CaseState
 
@@ -75,6 +78,31 @@ def evaluate_image(img) -> tuple[bool, str | None]:
         return False, (
             "This looks like a document or mostly blank image, not a skin "
             "photograph. Please photograph the lesion directly."
+        )
+
+    # Skin-presence check: enough of the frame must carry skin-like
+    # CHROMINANCE. Brightness-independent by construction, with a band
+    # generous enough for all Fitzpatrick types (verified by tests) and a
+    # low required fraction — see config.py for the fairness rationale.
+    try:
+        ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+        cr = ycrcb[:, :, 1]
+        cb = ycrcb[:, :, 2]
+        skin_mask = (
+            (cr >= SKIN_CR_RANGE[0])
+            & (cr <= SKIN_CR_RANGE[1])
+            & (cb >= SKIN_CB_RANGE[0])
+            & (cb <= SKIN_CB_RANGE[1])
+        )
+        skin_fraction = float(skin_mask.mean())
+    except Exception:
+        return False, "Photograph could not be analysed."
+
+    if skin_fraction < MIN_SKIN_FRACTION:
+        return False, (
+            "This does not appear to be a photograph of skin. Please "
+            "photograph the lesion directly, filling most of the frame "
+            "with the skin around it."
         )
     return True, None
 

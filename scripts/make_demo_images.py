@@ -29,10 +29,14 @@ def main() -> int:
     rng = np.random.default_rng(SEED)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Sharp: mid-brightness textured noise with a soft dark blob in the
-    # centre, so the frame looks like *something* while staying obviously
-    # synthetic. High Laplacian variance -> passes the blur gate.
-    base = rng.integers(120, 200, size=(512, 512, 3)).astype(np.uint8)
+    # Sharp: skin-toned textured noise with a soft dark blob in the
+    # centre, so the frame passes the quality AND skin-presence gates
+    # while staying obviously synthetic. High Laplacian variance ->
+    # passes the blur gate.
+    base_tone = np.array([86, 125, 185], dtype=np.int16)  # BGR skin tone
+    base = np.clip(
+        base_tone + rng.integers(-35, 36, size=(512, 512, 3)), 0, 255
+    ).astype(np.uint8)
     yy, xx = np.mgrid[0:512, 0:512]
     blob = np.exp(-(((yy - 256) ** 2 + (xx - 256) ** 2) / (2 * 80.0**2)))
     sharp = (base * (1.0 - 0.45 * blob[..., None])).astype(np.uint8)

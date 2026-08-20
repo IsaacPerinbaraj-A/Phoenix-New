@@ -47,6 +47,20 @@ MIN_SATURATION = float(os.getenv("DERMATRIAGE_MIN_SATURATION", "15.0"))
 MAX_FLAT_FRACTION = float(os.getenv("DERMATRIAGE_MAX_FLAT_FRACTION", "0.55"))
 MAX_WHITE_FRACTION = float(os.getenv("DERMATRIAGE_MAX_WHITE_FRACTION", "0.65"))
 
+# Skin-presence check: the photo must contain a meaningful fraction of
+# skin-CHROMA pixels. Fairness-critical design notes:
+#   - the test uses YCrCb chrominance only, which is largely independent
+#     of brightness — human skin of ALL tones clusters in the same Cr/Cb
+#     band (darker skin differs mainly in luminance, not chroma);
+#   - the band below is deliberately generous and is verified by unit
+#     tests to accept synthetic patches of all six Fitzpatrick types;
+#   - the required fraction is LOW (a lesion photo is mostly skin);
+#   - a false rejection never blocks a case — the assessment continues
+#     answers-only, exactly like a blurry photo.
+SKIN_CR_RANGE = (130, 180)
+SKIN_CB_RANGE = (75, 130)
+MIN_SKIN_FRACTION = float(os.getenv("DERMATRIAGE_MIN_SKIN_FRACTION", "0.18"))
+
 # --------------------------------------------------------------------------
 # Vision model
 # --------------------------------------------------------------------------

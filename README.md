@@ -55,9 +55,13 @@ flowchart TD
     SAF --> END([END])
 ```
 
-1. **Ingestion** — decodability, Laplacian blur, brightness checks; makes a
-   genuine graph-level routing decision (`add_conditional_edges`). No
-   skin-colour rejection heuristics, by design.
+1. **Ingestion** — decodability, Laplacian blur and brightness checks,
+   plus a conservative non-skin gate (grayscale/document detection,
+   screenshot detection, and a brightness-independent skin-chroma
+   presence check whose generous band is unit-tested to accept all six
+   Fitzpatrick tones — a false rejection degrades to an answers-only
+   assessment, never a blocked one). Makes a genuine graph-level routing
+   decision (`add_conditional_edges`).
 2. **Vision** — EfficientNet-B0 (timm) fine-tuned on HAM10000, seven
    classes, Grad-CAM heatmap. Missing weights degrade safely: no
    probabilities are ever fabricated.

@@ -30,8 +30,14 @@ def _run_graph(image_path, monkeypatch):
 
 @pytest.fixture()
 def sharp_image(tmp_path):
+    # Skin-toned camera-like noise so the non-skin gate passes it.
     rng = np.random.default_rng(42)
-    img = rng.integers(0, 255, size=(256, 256, 3), dtype=np.uint8)
+    base = np.array([86, 125, 185], dtype=np.int16)  # BGR of a mid tone
+    img = np.clip(
+        base + rng.integers(-35, 36, size=(256, 256, 3), dtype=np.int16),
+        0,
+        255,
+    ).astype(np.uint8)
     path = tmp_path / "sharp.png"
     cv2.imwrite(str(path), img)
     return path

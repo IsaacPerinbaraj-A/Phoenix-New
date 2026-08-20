@@ -44,8 +44,14 @@ def _png_bytes(blurry: bool) -> bytes:
     if blurry:
         img = np.full((256, 256, 3), 128, dtype=np.uint8)
     else:
+        # Skin-toned camera-like noise so the non-skin gate passes it.
         rng = np.random.default_rng(7)
-        img = rng.integers(0, 255, size=(256, 256, 3), dtype=np.uint8)
+        base = np.array([86, 125, 185], dtype=np.int16)  # BGR of a mid tone
+        img = np.clip(
+            base + rng.integers(-35, 36, size=(256, 256, 3), dtype=np.int16),
+            0,
+            255,
+        ).astype(np.uint8)
     ok, buf = cv2.imencode(".png", img)
     assert ok
     return buf.tobytes()
