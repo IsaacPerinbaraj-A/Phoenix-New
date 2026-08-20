@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getHealth, submitCase } from "../api.js";
 import { getUser } from "../auth.js";
 import AgentTrace from "../components/AgentTrace.jsx";
 import Disclaimer from "../components/Disclaimer.jsx";
 import PhotoUpload from "../components/PhotoUpload.jsx";
 import Questionnaire, { BODY_SITES } from "../components/Questionnaire.jsx";
-import ResultCard from "../components/ResultCard.jsx";
 
 function CaseSummary({ questionnaire, imageFile, phase, onReset }) {
   const site =
@@ -95,16 +94,17 @@ const REQUIRED_ANSWERS = [
 ];
 
 export default function AssessPage() {
-  const [phase, setPhase] = useState("form"); // form | running | done | error
+  const [phase, setPhase] = useState("form"); // form | running | error
   const [imageFile, setImageFile] = useState(null);
   const [photoLooksBlurry, setPhotoLooksBlurry] = useState(null);
   const [questionnaire, setQuestionnaire] = useState(EMPTY_QUESTIONNAIRE);
   const [events, setEvents] = useState([]);
-  const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [health, setHealth] = useState(null);
   const user = getUser();
+  const navigate = useNavigate();
   const pipelineRef = useRef(null);
+  const eventsRef = useRef([]);
 
   useEffect(() => {
     getHealth().then(setHealth).catch(() => setHealth(null));
@@ -154,7 +154,7 @@ export default function AssessPage() {
     }
     setError(null);
     setEvents([]);
-    setResult(null);
+    eventsRef.current = [];
     setPhase("running");
 
     try {
@@ -174,11 +174,18 @@ export default function AssessPage() {
             return;
           }
           if (event.done) {
-            setResult(event.result);
-            setPhase("done");
+            // Let the completed pipeline be visible for a beat, then move
+            // to the dedicated results page (the trace travels along).
+            const trace = eventsRef.current;
+            setTimeout(() => {
+              navigate(`/cases/${event.case_id}`, {
+                state: { fromAssessment: true, events: trace },
+              });
+            }, 900);
             return;
           }
-          setEvents((prev) => [...prev, event]);
+          eventsRef.current = [...eventsRef.current, event];
+          setEvents(eventsRef.current);
         },
       });
     } catch (err) {
@@ -190,7 +197,7 @@ export default function AssessPage() {
   const reset = () => {
     setPhase("form");
     setEvents([]);
-    setResult(null);
+    eventsRef.current = [];
     setError(null);
   };
 
@@ -270,11 +277,15 @@ export default function AssessPage() {
             </div>
           )}
 
-          {(phase === "running" || phase === "done") && (
-            <AgentTrace events={events} running={phase === "running"} />
+          {phase === "running" && (
+            <>
+              <AgentTrace events={events} running />
+              <p className="text-center text-sm text-slate-500">
+                You'll be taken to the results page when the analysis
+                completes.
+              </p>
+            </>
           )}
-
-          {phase === "done" && result && <ResultCard result={result} />}
 
           {phase === "error" && (
             <div role="alert" className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
