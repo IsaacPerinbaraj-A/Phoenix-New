@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { getUser, isClinician } from "../auth.js";
 import { logout } from "../api.js";
+import { clearLastRun } from "../lastRun.js";
 
 function NavItem({ to, children }) {
   return (
@@ -25,6 +26,7 @@ export default function Layout() {
 
   const handleLogout = async () => {
     await logout();
+    clearLastRun();
     navigate("/");
   };
 

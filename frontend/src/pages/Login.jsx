@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../api.js";
+import { clearLastRun } from "../lastRun.js";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function Login() {
     setBusy(true);
     try {
       const body = await login(username.trim(), password);
+      // A fresh session starts at a fresh analysis page.
+      clearLastRun();
       navigate(body.role === "clinician" ? "/clinician" : "/assess");
     } catch (err) {
       setError(err.message);

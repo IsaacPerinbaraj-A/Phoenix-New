@@ -7,35 +7,7 @@ import Disclaimer from "../components/Disclaimer.jsx";
 import PhotoUpload from "../components/PhotoUpload.jsx";
 import Questionnaire, { BODY_SITES } from "../components/Questionnaire.jsx";
 
-// The last completed run survives navigation (Back button, nav links)
-// within the browser session, so the finished pipeline is never lost
-// until a new case is started.
-const LAST_RUN_KEY = "dermatriage_last_run";
-
-function loadLastRun() {
-  try {
-    const raw = sessionStorage.getItem(LAST_RUN_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveLastRun(run) {
-  try {
-    sessionStorage.setItem(LAST_RUN_KEY, JSON.stringify(run));
-  } catch {
-    /* storage unavailable — the run just won't persist */
-  }
-}
-
-function clearLastRun() {
-  try {
-    sessionStorage.removeItem(LAST_RUN_KEY);
-  } catch {
-    /* ignore */
-  }
-}
+import { clearLastRun, loadLastRun, saveLastRun } from "../lastRun.js";
 
 function CaseSummary({ questionnaire, hasImage, phase, onReset }) {
   const site =

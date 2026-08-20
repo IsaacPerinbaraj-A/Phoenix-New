@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { register } from "../api.js";
+import { clearLastRun } from "../lastRun.js";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function Register() {
     setBusy(true);
     try {
       await register(username.trim(), password);
+      clearLastRun();
       navigate("/assess");
     } catch (err) {
       setError(err.message);
