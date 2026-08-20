@@ -7,7 +7,37 @@ import Disclaimer from "../components/Disclaimer.jsx";
 import PhotoUpload from "../components/PhotoUpload.jsx";
 import Questionnaire, { BODY_SITES } from "../components/Questionnaire.jsx";
 
-function CaseSummary({ questionnaire, imageFile, phase, onReset }) {
+// The last completed run survives navigation (Back button, nav links)
+// within the browser session, so the finished pipeline is never lost
+// until a new case is started.
+const LAST_RUN_KEY = "dermatriage_last_run";
+
+function loadLastRun() {
+  try {
+    const raw = sessionStorage.getItem(LAST_RUN_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLastRun(run) {
+  try {
+    sessionStorage.setItem(LAST_RUN_KEY, JSON.stringify(run));
+  } catch {
+    /* storage unavailable — the run just won't persist */
+  }
+}
+
+function clearLastRun() {
+  try {
+    sessionStorage.removeItem(LAST_RUN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function CaseSummary({ questionnaire, hasImage, phase, onReset }) {
   const site =
     BODY_SITES.find(([v]) => v === questionnaire.body_site)?.[1] ||
     questionnaire.body_site;
@@ -26,7 +56,7 @@ function CaseSummary({ questionnaire, imageFile, phase, onReset }) {
       <dl className="mt-2 space-y-1 text-sm text-slate-700">
         <div className="flex justify-between gap-2">
           <dt className="text-slate-500">Photograph</dt>
-          <dd className="font-medium">{imageFile ? "Provided" : "None"}</dd>
+          <dd className="font-medium">{hasImage ? "Provided" : "None"}</dd>
         </div>
         <div className="flex justify-between gap-2">
           <dt className="text-slate-500">Age</dt>
@@ -94,11 +124,17 @@ const REQUIRED_ANSWERS = [
 ];
 
 export default function AssessPage() {
-  const [phase, setPhase] = useState("form"); // form | running | error
+  const [lastRun] = useState(loadLastRun);
+  // phase: form | running | completed | error
+  const [phase, setPhase] = useState(lastRun ? "completed" : "form");
   const [imageFile, setImageFile] = useState(null);
+  const [hadImage, setHadImage] = useState(lastRun?.hadImage || false);
+  const [caseId, setCaseId] = useState(lastRun?.caseId || null);
   const [photoLooksBlurry, setPhotoLooksBlurry] = useState(null);
-  const [questionnaire, setQuestionnaire] = useState(EMPTY_QUESTIONNAIRE);
-  const [events, setEvents] = useState([]);
+  const [questionnaire, setQuestionnaire] = useState(
+    lastRun?.questionnaire || EMPTY_QUESTIONNAIRE
+  );
+  const [events, setEvents] = useState(lastRun?.events || []);
   const [error, setError] = useState(null);
   const [health, setHealth] = useState(null);
   const user = getUser();
@@ -174,9 +210,20 @@ export default function AssessPage() {
             return;
           }
           if (event.done) {
+            // Persist the completed run so returning to this page shows
+            // the finished pipeline instead of a blank form.
+            const trace = eventsRef.current;
+            saveLastRun({
+              events: trace,
+              questionnaire,
+              hadImage: !!imageFile,
+              caseId: event.case_id,
+            });
+            setHadImage(!!imageFile);
+            setCaseId(event.case_id);
+            setPhase("completed");
             // Let the completed pipeline be visible for a beat, then move
             // to the dedicated results page (the trace travels along).
-            const trace = eventsRef.current;
             setTimeout(() => {
               navigate(`/cases/${event.case_id}`, {
                 state: { fromAssessment: true, events: trace },
@@ -195,10 +242,15 @@ export default function AssessPage() {
   };
 
   const reset = () => {
+    clearLastRun();
     setPhase("form");
     setEvents([]);
     eventsRef.current = [];
     setError(null);
+    setImageFile(null);
+    setHadImage(false);
+    setCaseId(null);
+    setQuestionnaire(EMPTY_QUESTIONNAIRE);
   };
 
   return (
@@ -257,7 +309,7 @@ export default function AssessPage() {
           ) : (
             <CaseSummary
               questionnaire={questionnaire}
-              imageFile={imageFile}
+              hasImage={phase === "running" ? !!imageFile : hadImage}
               phase={phase}
               onReset={reset}
             />
@@ -284,6 +336,26 @@ export default function AssessPage() {
                 You'll be taken to the results page when the analysis
                 completes.
               </p>
+            </>
+          )}
+
+          {phase === "completed" && (
+            <>
+              {caseId && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 px-4 py-3">
+                  <p className="font-semibold text-emerald-800">
+                    ✓ Analysis complete
+                  </p>
+                  <Link
+                    to={`/cases/${caseId}`}
+                    state={{ fromAssessment: true, events }}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
+                  >
+                    View full result →
+                  </Link>
+                </div>
+              )}
+              <AgentTrace events={events} running={false} />
             </>
           )}
 
