@@ -21,7 +21,7 @@ function ProgressRail({ imageFile, questionnaire }) {
     ].every((v) => typeof v === "boolean");
 
   const steps = [
-    ["Photo", !!imageFile, "Optional"],
+    ["Photo", !!imageFile, "Required"],
     ["Questions", questionsDone, "Required"],
     ["Review", false, "Runs automatically"],
   ];
