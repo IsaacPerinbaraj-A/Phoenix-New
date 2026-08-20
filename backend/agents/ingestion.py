@@ -9,7 +9,14 @@ tones.
 
 import logging
 
-from config import BLUR_THRESHOLD, MAX_BRIGHTNESS, MIN_BRIGHTNESS
+from config import (
+    BLUR_THRESHOLD,
+    MAX_BRIGHTNESS,
+    MAX_FLAT_FRACTION,
+    MAX_WHITE_FRACTION,
+    MIN_BRIGHTNESS,
+    MIN_SATURATION,
+)
 from schemas import CaseState
 
 logger = logging.getLogger(__name__)
@@ -40,6 +47,35 @@ def evaluate_image(img) -> tuple[bool, str | None]:
         return False, "Photograph is too blurry."
     if not (MIN_BRIGHTNESS < brightness < MAX_BRIGHTNESS):
         return False, "Lighting is too dark or too bright."
+
+    # Conservative non-skin-photograph checks (tone-agnostic by design —
+    # deliberately no skin-colour rule; see config.py). Only inputs that
+    # are clearly not photographs of skin are rejected here.
+    try:
+        saturation = float(
+            cv2.cvtColor(img, cv2.COLOR_BGR2HSV)[:, :, 1].mean()
+        )
+        flat_fraction = float((img[:, :-1] == img[:, 1:]).all(axis=2).mean())
+        white_fraction = float((img > 240).all(axis=2).mean())
+    except Exception:
+        return False, "Photograph could not be analysed."
+
+    if saturation < MIN_SATURATION:
+        return False, (
+            "This does not look like a skin photograph (no colour "
+            "information — a document, scan or grayscale image). Please "
+            "take a colour photo of the lesion directly."
+        )
+    if flat_fraction > MAX_FLAT_FRACTION:
+        return False, (
+            "This looks like a screenshot or graphic, not a photograph of "
+            "skin. Please photograph the lesion directly with the camera."
+        )
+    if white_fraction > MAX_WHITE_FRACTION:
+        return False, (
+            "This looks like a document or mostly blank image, not a skin "
+            "photograph. Please photograph the lesion directly."
+        )
     return True, None
 
 

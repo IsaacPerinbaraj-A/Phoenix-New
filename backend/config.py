@@ -35,6 +35,18 @@ BLUR_THRESHOLD = float(os.getenv("DERMATRIAGE_BLUR_THRESHOLD", "60.0"))
 MIN_BRIGHTNESS = float(os.getenv("DERMATRIAGE_MIN_BRIGHTNESS", "30.0"))
 MAX_BRIGHTNESS = float(os.getenv("DERMATRIAGE_MAX_BRIGHTNESS", "225.0"))
 
+# Conservative, tone-agnostic "obviously not a skin photograph" checks.
+# Deliberately NO skin-colour range detection — a skin-tone rule could
+# discriminate against darker skin tones. These cues only catch inputs
+# that are clearly not photographs of skin at all:
+#   - MIN_SATURATION: grayscale scans/documents/x-rays have ~zero colour;
+#   - MAX_FLAT_FRACTION: screenshots/graphics have large exactly-flat
+#     pixel runs that real camera photos (sensor noise) never have;
+#   - MAX_WHITE_FRACTION: documents are dominated by near-pure white.
+MIN_SATURATION = float(os.getenv("DERMATRIAGE_MIN_SATURATION", "15.0"))
+MAX_FLAT_FRACTION = float(os.getenv("DERMATRIAGE_MAX_FLAT_FRACTION", "0.55"))
+MAX_WHITE_FRACTION = float(os.getenv("DERMATRIAGE_MAX_WHITE_FRACTION", "0.65"))
+
 # --------------------------------------------------------------------------
 # Vision model
 # --------------------------------------------------------------------------
