@@ -1,38 +1,7 @@
 import { useEffect, useState } from "react";
 import Disclaimer from "./Disclaimer.jsx";
-
-// Display metadata only — the band itself is decided exclusively by the
-// backend safety verifier. This file never recalculates urgency.
-const BANDS = {
-  URGENT: {
-    emoji: "🔴",
-    label: "URGENT",
-    sub: "Needs professional assessment within 72 hours",
-    style: "border-red-500 bg-red-50 text-red-900",
-    badge: "bg-red-600 text-white",
-  },
-  REVIEW: {
-    emoji: "🟠",
-    label: "REVIEW",
-    sub: "Professional examination within 2–4 weeks",
-    style: "border-orange-400 bg-orange-50 text-orange-900",
-    badge: "bg-orange-500 text-white",
-  },
-  MONITOR: {
-    emoji: "🟡",
-    label: "MONITOR",
-    sub: "Low concern — re-photograph in 3 months",
-    style: "border-yellow-400 bg-yellow-50 text-yellow-900",
-    badge: "bg-yellow-500 text-white",
-  },
-  INCONCLUSIVE: {
-    emoji: "⚪",
-    label: "INCONCLUSIVE",
-    sub: "Could not be assessed — see a clinician regardless",
-    style: "border-slate-400 bg-slate-50 text-slate-900",
-    badge: "bg-slate-600 text-white",
-  },
-};
+import Icon from "./Icon.jsx";
+import { bandMeta, BandPill } from "./BandPill.jsx";
 
 // Printable referral slip. Hidden on screen; @media print rules in
 // index.css make it the only visible element when printing.
@@ -55,9 +24,7 @@ function ReferralSlip({ result, band }) {
       </p>
 
       <div style={{ border: "3px solid #000", padding: 12, marginTop: 10 }}>
-        <p style={{ fontSize: 26, fontWeight: 800 }}>
-          {band.emoji} {result.final_band}
-        </p>
+        <p style={{ fontSize: 26, fontWeight: 800 }}>{result.final_band}</p>
         <p style={{ fontSize: 13 }}>{band.sub}</p>
       </div>
 
@@ -112,7 +79,7 @@ function ReferralSlip({ result, band }) {
           fontWeight: 700,
         }}
       >
-        ⚠ {result.disclaimer ||
+        {result.disclaimer ||
           "This is not a diagnosis. Only a doctor can tell you what it is."}
       </div>
       <p style={{ marginTop: 8, fontSize: 10 }}>
@@ -123,23 +90,24 @@ function ReferralSlip({ result, band }) {
   );
 }
 
-function SignalTile({ label, value, tone, hint }) {
+function SignalRow({ label, value, tone, hint }) {
   if (value === null || value === undefined) return null;
   const width = Math.min(Math.max(value, 0), 1) * 100;
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-0.5 text-3xl font-extrabold text-slate-800">
-        {(value * 100).toFixed(0)}
-        <span className="text-lg font-bold text-slate-400">%</span>
-      </p>
-      <div className="mt-1.5 h-2.5 rounded-full bg-slate-200">
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[13px] text-ink-secondary">{label}</span>
+        <span className="num text-sm font-medium text-ink">
+          {(value * 100).toFixed(0)}%
+        </span>
+      </div>
+      <div className="mt-1.5 h-1 rounded-full bg-stone-200">
         <div
-          className={`h-2.5 rounded-full ${tone || "bg-blue-500"}`}
+          className={`h-1 rounded-full ${tone || "bg-brand-500"}`}
           style={{ width: `${width}%` }}
         />
       </div>
-      {hint && <p className="mt-1 text-[11px] text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-ink-faint">{hint}</p>}
     </div>
   );
 }
@@ -158,76 +126,83 @@ export default function ResultCard({ result }) {
   }, [hasVision]);
 
   if (!result?.final_band) return null;
-  const band = BANDS[result.final_band] || BANDS.INCONCLUSIVE;
+  const band = bandMeta(result.final_band);
   const advisory = result.reasoning?.suggested_band;
   const clinician = result.clinician;
   const visionMetrics = benchmark?.vision?.metrics;
+  const imageProvided =
+    result.image_provided ??
+    !(result.quality_note || "").startsWith("No photograph");
 
   return (
-    <section aria-labelledby="result-heading" className="space-y-4">
+    <section aria-labelledby="result-heading" className="space-y-3">
       <h2 id="result-heading" className="sr-only">
         Triage result
       </h2>
 
-      {/* 1. Final urgency band — the dominant element */}
+      {/* 1. Final urgency band — authoritative, not alarming */}
       <div
         role="status"
-        className={`rounded-2xl border-4 p-6 text-center ${band.style}`}
+        className={`rounded-lg border border-l-4 p-5 ${band.bg} ${band.line} ${band.accent}`}
       >
-        <p className="text-5xl" aria-hidden="true">
-          {band.emoji}
-        </p>
-        <p className="mt-2 text-3xl font-extrabold tracking-wide">{band.label}</p>
-        <p className="mt-1 text-sm font-medium">{band.sub}</p>
+        <div className="flex items-start gap-3">
+          <span className={`mt-0.5 shrink-0 ${band.text}`}>
+            <Icon name={band.icon} size={20} />
+          </span>
+          <div>
+            <p className={`section-label ${band.text} !text-current opacity-80`}>
+              Triage result
+            </p>
+            <p className={`mt-0.5 text-2xl font-semibold tracking-tight ${band.text}`}>
+              {band.label}
+            </p>
+            <p className={`mt-0.5 text-sm ${band.text} opacity-90`}>{band.sub}</p>
+          </div>
+        </div>
       </div>
 
-      {/* Photograph notices: a rejected photo warrants a retake warning; a
-          case submitted without any photo just gets a quiet note. */}
-      {result.image_ok === false &&
-        (result.image_provided ??
-        !(result.quality_note || "").startsWith("No photograph")) && (
-          <div
-            role="alert"
-            className="rounded-xl border-2 border-amber-400 bg-amber-50 p-4"
-          >
-            <p className="font-bold text-amber-900">
-              📷 The photograph was not used
+      {/* Photograph notices */}
+      {result.image_ok === false && imageProvided && (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-md border border-review-line bg-review-bg px-3.5 py-2.5 text-[13px] text-review-text"
+        >
+          <Icon name="camera" size={15} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-semibold">
+              The photograph was not used
               {result.quality_note ? `: ${result.quality_note}` : "."}
             </p>
-            <p className="mt-1 text-sm text-amber-800">
+            <p className="mt-0.5">
               This result is based on the patient's answers only. For a
               stronger assessment, retake the photo in good light, hold the
               phone steady, and assess the case again.
             </p>
           </div>
-        )}
-      {result.image_ok === false &&
-        !(result.image_provided ??
-        !(result.quality_note || "").startsWith("No photograph")) && (
-          <p className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-            📷 No photograph was provided — this result is based on the
-            patient's answers only. Adding a clear photo strengthens the
-            assessment.
-          </p>
-        )}
+        </div>
+      )}
+      {result.image_ok === false && !imageProvided && (
+        <p className="flex items-start gap-2.5 rounded-md border border-line bg-white px-3.5 py-2.5 text-[13px] text-ink-secondary">
+          <Icon name="camera" size={15} className="mt-0.5 shrink-0 text-ink-muted" />
+          <span>
+            No photograph was provided — this result is based on the patient's
+            answers only. Adding a clear photo strengthens the assessment.
+          </span>
+        </p>
+      )}
 
       {/* 2. Action instruction — deterministic template text */}
-      <div className="rounded-xl border-2 border-slate-800 bg-white p-4">
+      <div className="card border-l-4 border-l-ink p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              What to do
-            </p>
-            <p className="mt-1 text-lg font-bold text-slate-900">
+            <p className="section-label">What to do</p>
+            <p className="mt-1 text-base font-semibold leading-snug text-ink">
               {result.instruction}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            🖨️ Print referral
+          <button type="button" onClick={() => window.print()} className="btn-outline h-9 shrink-0 px-3">
+            <Icon name="printer" size={15} />
+            Print referral
           </button>
         </div>
       </div>
@@ -240,16 +215,15 @@ export default function ResultCard({ result }) {
 
       {/* 4. Triggered safety rules */}
       {result.safety_triggers?.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Safety rules triggered
-          </p>
-          <div className="mt-1 flex flex-wrap gap-2">
+        <div className="card p-4">
+          <p className="section-label">Safety rules triggered</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {result.safety_triggers.map((rule) => (
               <span
                 key={rule}
-                className={`rounded-full px-3 py-1 text-xs font-bold ${band.badge}`}
+                className={`num inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium ${band.bg} ${band.line} ${band.text}`}
               >
+                <span className={`h-1.5 w-1.5 rounded-full ${band.dot}`} />
                 {rule}
               </span>
             ))}
@@ -259,56 +233,55 @@ export default function ResultCard({ result }) {
 
       {/* 4b. Why this result — per-case causes from the rule engine */}
       {result.safety_explanations?.length > 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Why this result
-          </p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+        <div className="card p-4">
+          <p className="section-label">Why this result</p>
+          <ul className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-ink-secondary">
             {result.safety_explanations.map((e) => (
-              <li key={e}>{e}</li>
+              <li key={e} className="flex gap-2">
+                <span className={`mt-[7px] h-1 w-1 shrink-0 rounded-full ${band.dot}`} />
+                {e}
+              </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-slate-400">
-            Causes are computed deterministically from this case's own
-            values by the safety rule engine.
+          <p className="mt-2 text-[11px] text-ink-faint">
+            Causes are computed deterministically from this case's own values
+            by the safety rule engine.
           </p>
         </div>
       )}
 
-      {/* 4c. Model signals — the numbers that matter, at a glance */}
+      {/* 4c. Model signals */}
       {(result.vision || result.history) && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Model signals
-          </p>
-          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="card p-4">
+          <p className="section-label">Model signals</p>
+          <div className="mt-3 space-y-3">
             {result.vision && (
               <>
-                <SignalTile
+                <SignalRow
                   label="Malignant-group probability"
                   value={result.vision.malignant_p}
-                  tone="bg-red-500"
+                  tone="bg-urgent-dot"
                   hint="Image model estimate for the concerning class group"
                 />
-                <SignalTile
+                <SignalRow
                   label="Vision confidence"
                   value={result.vision.confidence}
-                  tone="bg-blue-500"
+                  tone="bg-brand-500"
                   hint="Model certainty in its top class"
                 />
               </>
             )}
             {result.history && (
-              <SignalTile
+              <SignalRow
                 label="History risk score"
                 value={result.history.risk_score}
-                tone="bg-orange-500"
+                tone="bg-review-dot"
                 hint={`From the patient's answers (${result.history.source})`}
               />
             )}
           </div>
           {result.vision && (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-3 text-[11px] leading-relaxed text-ink-muted">
               {visionMetrics
                 ? `Vision model benchmark (HAM10000 lesion-grouped test split): ` +
                   `${(visionMetrics.malignant_recall * 100).toFixed(1)}% malignant recall · ` +
@@ -317,50 +290,52 @@ export default function ResultCard({ result }) {
                 : "Vision model benchmark: not yet evaluated on this machine."}
             </p>
           )}
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-[11px] text-ink-faint">
             Evidence inputs only — the final band above is decided by the
             deterministic safety rules, not by these numbers alone.
           </p>
         </div>
       )}
 
-      {/* 4c. Clinician referral recommendation — deterministic templates */}
+      {/* 4d. Clinician referral recommendation — deterministic templates */}
       {clinician && (
-        <div className="rounded-xl border-2 border-blue-300 bg-blue-50 p-4">
+        <div className="card border-l-4 border-l-brand-500 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+            <p className="section-label !text-brand-700">
               Clinician referral recommendation
             </p>
-            <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">
+            <span className="num rounded-full border border-brand-100 bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700">
               Priority {clinician.priority_score}/100
             </span>
           </div>
-          <p className="mt-2 font-medium text-slate-800">{clinician.referral}</p>
+          <p className="mt-2 text-sm font-medium leading-relaxed text-ink">
+            {clinician.referral}
+          </p>
           {clinician.basis?.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {clinician.basis.map((b) => (
                 <span
                   key={b}
-                  className="rounded-full border border-blue-200 bg-white px-2.5 py-0.5 text-xs text-slate-600"
+                  className="rounded-full border border-line bg-page px-2 py-0.5 text-[11px] text-ink-secondary"
                 >
                   {b}
                 </span>
               ))}
             </div>
           )}
-          <p className="mt-2 text-xs text-blue-700/70">{clinician.note}</p>
+          <p className="mt-2 text-[11px] text-ink-faint">{clinician.note}</p>
         </div>
       )}
 
       {/* 5. Supporting explanation — clearly subordinate to the decision */}
       {result.reasoning && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Supporting explanation (generated, advisory only)
+        <div className="card bg-page p-4">
+          <p className="section-label">Supporting explanation (generated, advisory only)</p>
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-secondary">
+            {result.reasoning.rationale}
           </p>
-          <p className="mt-1 text-sm text-slate-700">{result.reasoning.rationale}</p>
           {advisory && advisory !== result.final_band && (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-ink-muted">
               The model suggested <strong>{advisory}</strong>; the deterministic
               safety engine decided <strong>{result.final_band}</strong>.
             </p>
@@ -368,38 +343,41 @@ export default function ResultCard({ result }) {
         </div>
       )}
       {!result.reasoning && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+        <div className="card bg-page p-4 text-[13px] leading-relaxed text-ink-secondary">
           The explanation model was unavailable, so the case was automatically
           treated with extra caution (rule R8).
         </div>
       )}
 
       {/* 6. Technical details — collapsible */}
-      <details className="rounded-xl border border-slate-200 bg-white p-4">
-        <summary className="cursor-pointer font-medium text-slate-700">
+      <details className="card p-4">
+        <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-ink-secondary transition-colors duration-150 hover:text-ink">
+          <Icon name="chevron-down" size={14} className="text-ink-muted" />
           Technical details
         </summary>
-        <div className="mt-3 space-y-3 text-sm text-slate-700">
+        <div className="mt-3 space-y-4 text-[13px] text-ink-secondary">
           {result.vision ? (
             <div>
-              <p className="font-semibold">Image model</p>
+              <p className="section-label mb-2">Image model</p>
               <p>
-                Malignant-group probability: {result.vision.malignant_p.toFixed(3)} ·
-                Confidence: {result.vision.confidence.toFixed(3)}
+                Malignant-group probability:{" "}
+                <span className="num text-ink">{result.vision.malignant_p.toFixed(3)}</span>{" "}
+                · Confidence:{" "}
+                <span className="num text-ink">{result.vision.confidence.toFixed(3)}</span>
               </p>
               <ul className="mt-2 space-y-1.5">
                 {Object.entries(result.vision.probs)
                   .sort(([, a], [, b]) => b - a)
                   .map(([cls, p]) => (
                     <li key={cls} className="flex items-center gap-2">
-                      <span className="w-12 font-mono text-xs text-slate-500">{cls}</span>
-                      <div className="h-2 flex-1 rounded-full bg-slate-200">
+                      <span className="num w-12 text-xs text-ink-muted">{cls}</span>
+                      <div className="h-1 flex-1 rounded-full bg-stone-200">
                         <div
-                          className="h-2 rounded-full bg-blue-500"
+                          className="h-1 rounded-full bg-brand-500"
                           style={{ width: `${Math.min(Number(p) * 100, 100)}%` }}
                         />
                       </div>
-                      <span className="w-12 text-right text-xs text-slate-600">
+                      <span className="num w-12 text-right text-xs text-ink-secondary">
                         {(Number(p) * 100).toFixed(1)}%
                       </span>
                     </li>
@@ -409,7 +387,7 @@ export default function ResultCard({ result }) {
                 <img
                   src={result.vision.gradcam_path}
                   alt="Grad-CAM heatmap showing image regions that most influenced the model"
-                  className="mt-2 max-h-64 rounded-lg border border-slate-200"
+                  className="mt-2 max-h-64 rounded-md border border-line"
                 />
               )}
             </div>
@@ -422,24 +400,25 @@ export default function ResultCard({ result }) {
 
           {result.history && (
             <div>
-              <p className="font-semibold">History model</p>
+              <p className="section-label mb-2">History model</p>
               <p>
-                Risk score: {result.history.risk_score.toFixed(2)} (
-                {result.history.source})
+                Risk score:{" "}
+                <span className="num text-ink">{result.history.risk_score.toFixed(2)}</span>{" "}
+                ({result.history.source})
               </p>
               {result.history.red_flags.length > 0 && (
-                <p>Red flags: {result.history.red_flags.join("; ")}</p>
+                <p className="mt-1">Red flags: {result.history.red_flags.join("; ")}</p>
               )}
             </div>
           )}
 
           {result.reasoning?.abcde && (
             <div>
-              <p className="font-semibold">ABCDE explanation (generated)</p>
-              <ul className="mt-1 space-y-1">
+              <p className="section-label mb-2">ABCDE explanation (generated)</p>
+              <ul className="space-y-1">
                 {Object.entries(result.reasoning.abcde).map(([k, v]) => (
                   <li key={k}>
-                    <strong>{k}:</strong> {v}
+                    <strong className="text-ink">{k}:</strong> {v}
                   </li>
                 ))}
               </ul>
@@ -447,8 +426,13 @@ export default function ResultCard({ result }) {
           )}
 
           <div>
-            <p className="font-semibold">Case</p>
-            <p>ID: {result.case_id}</p>
+            <p className="section-label mb-1">Case</p>
+            <p className="num text-xs">{result.case_id}</p>
+            {result.final_band && (
+              <p className="mt-1">
+                <BandPill band={result.final_band} />
+              </p>
+            )}
           </div>
         </div>
       </details>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { getCase } from "../api.js";
 import AgentTrace from "../components/AgentTrace.jsx";
+import Icon from "../components/Icon.jsx";
 import ResultCard from "../components/ResultCard.jsx";
 
 export default function CaseDetailPage() {
@@ -20,45 +21,48 @@ export default function CaseDetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold text-slate-800">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold tracking-tight text-ink">
           {fromAssessment ? "Assessment result" : "Case review"}
         </h1>
         <div className="flex gap-2">
           {fromAssessment ? (
-            <Link
-              to="/assess"
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              + Start a new case
+            <Link to="/assess" className="btn-primary h-9 px-3 text-[13px]">
+              <Icon name="plus" size={14} />
+              Start a new case
             </Link>
           ) : (
-            <Link
-              to="/history"
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              ← Back to history
+            <Link to="/history" className="btn-outline h-9 px-3 text-[13px]">
+              <Icon name="arrow-left" size={14} />
+              Back to history
             </Link>
           )}
         </div>
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+        <p
+          role="alert"
+          className="rounded-md border border-urgent-line bg-urgent-bg px-3.5 py-2.5 text-[13px] font-medium text-urgent-text"
+        >
           {error}
         </p>
       )}
 
       {!result && !error && (
-        <p className="text-slate-500">Loading case…</p>
+        <p className="flex items-center gap-2 text-[13px] text-ink-muted">
+          <Icon name="loader" size={14} className="animate-spin" />
+          Loading case…
+        </p>
       )}
 
       {result && <ResultCard result={result} />}
 
       {/* The pipeline trace travels along from a just-completed assessment */}
       {result && traceEvents && traceEvents.length > 0 && (
-        <details className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
-          <summary className="cursor-pointer font-medium text-slate-700">
+        <details className="card mt-4 p-4">
+          <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-ink-secondary transition-colors duration-150 hover:text-ink">
+            <Icon name="chevron-down" size={14} className="text-ink-muted" />
             How this result was produced (agent pipeline)
           </summary>
           <div className="mt-3">

@@ -2,20 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getCases } from "../api.js";
 import { getUser } from "../auth.js";
-
-const BAND_CHIP = {
-  URGENT: "bg-red-600 text-white",
-  REVIEW: "bg-orange-500 text-white",
-  MONITOR: "bg-yellow-500 text-white",
-  INCONCLUSIVE: "bg-slate-600 text-white",
-};
-
-const BAND_ICON = {
-  URGENT: "🔴",
-  REVIEW: "🟠",
-  MONITOR: "🟡",
-  INCONCLUSIVE: "⚪",
-};
+import Icon from "../components/Icon.jsx";
+import { BandPill } from "../components/BandPill.jsx";
 
 function formatDate(iso) {
   try {
@@ -38,88 +26,83 @@ export default function HistoryPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-2">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">
+          <h1 className="text-xl font-semibold tracking-tight text-ink">
             {user ? `${user}'s assessment history` : "Assessment history"}
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="mt-0.5 text-[13px] text-ink-muted">
             {user
               ? "Cases assessed while you were logged in."
               : "Shared demo queue. Log in to keep a personal history."}
           </p>
         </div>
-        <Link
-          to="/assess"
-          className="rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700"
-        >
-          + New assessment
+        <Link to="/assess" className="btn-primary h-9 px-3 text-[13px]">
+          <Icon name="plus" size={14} />
+          New assessment
         </Link>
       </div>
 
       {!user && (
-        <p className="mb-4 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
-          You are not logged in.{" "}
-          <Link to="/login" className="font-semibold text-blue-600 hover:underline">
-            Log in
-          </Link>{" "}
-          or{" "}
-          <Link to="/register" className="font-semibold text-blue-600 hover:underline">
-            register
-          </Link>{" "}
-          so your future cases are saved under your account.
+        <p className="mb-4 flex items-start gap-2 rounded-md border border-line bg-white px-3.5 py-2.5 text-[13px] text-ink-secondary">
+          <Icon name="info" size={14} className="mt-0.5 shrink-0 text-ink-muted" />
+          <span>
+            You are not logged in.{" "}
+            <Link to="/login" className="font-medium text-brand-600 hover:underline">
+              Log in
+            </Link>{" "}
+            or{" "}
+            <Link to="/register" className="font-medium text-brand-600 hover:underline">
+              register
+            </Link>{" "}
+            so your future cases are saved under your account.
+          </span>
         </p>
       )}
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+        <p
+          role="alert"
+          className="rounded-md border border-urgent-line bg-urgent-bg px-3.5 py-2.5 text-[13px] font-medium text-urgent-text"
+        >
           Could not load history: {error}
         </p>
       )}
 
       {cases !== null && cases.length === 0 && (
-        <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 p-12 text-center text-slate-400">
-          <p className="text-4xl" aria-hidden="true">📂</p>
-          <p className="mt-2 font-medium">No assessments yet.</p>
-          <p className="text-sm">
-            Run your first case and it will show up here.
-          </p>
+        <div className="flex min-h-[240px] items-center justify-center rounded-lg border border-dashed border-line-strong">
+          <div className="text-center text-ink-faint">
+            <Icon name="folder" size={24} className="mx-auto" />
+            <p className="mt-2 text-sm font-medium text-ink-muted">No assessments yet.</p>
+            <p className="text-[13px]">Run your first case and it will show up here.</p>
+          </div>
         </div>
       )}
 
       {cases !== null && cases.length > 0 && (
-        <ul className="space-y-3">
+        <div className="card divide-y divide-line">
           {cases.map((c) => (
-            <li key={c.case_id}>
-              <Link
-                to={`/cases/${c.case_id}`}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-blue-300 hover:shadow"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl" aria-hidden="true">
-                    {BAND_ICON[c.final_band] || "⚪"}
-                  </span>
-                  <div>
-                    <p className="font-mono text-sm font-semibold text-slate-700">
-                      Case {c.case_id.slice(0, 8)}…
-                    </p>
-                    <p className="text-xs text-slate-500">{formatDate(c.created_at)}</p>
-                  </div>
+            <Link
+              key={c.case_id}
+              to={`/cases/${c.case_id}`}
+              className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors duration-150 hover:bg-page"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <BandPill band={c.final_band} />
+                <div className="min-w-0">
+                  <p className="num truncate text-[13px] font-medium text-ink">
+                    {c.case_id.slice(0, 8)}
+                  </p>
+                  <p className="text-xs text-ink-muted">{formatDate(c.created_at)}</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${
-                      BAND_CHIP[c.final_band] || BAND_CHIP.INCONCLUSIVE
-                    }`}
-                  >
-                    {c.final_band || "UNKNOWN"}
-                  </span>
-                  <span className="text-sm font-medium text-blue-600">View →</span>
-                </div>
-              </Link>
-            </li>
+              </div>
+              <span className="flex items-center gap-1 text-[13px] font-medium text-brand-600">
+                Review
+                <Icon name="chevron-right" size={14} />
+              </span>
+            </Link>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

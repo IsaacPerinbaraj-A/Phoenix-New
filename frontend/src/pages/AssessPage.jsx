@@ -4,9 +4,9 @@ import { getHealth, submitCase } from "../api.js";
 import { getUser } from "../auth.js";
 import AgentTrace from "../components/AgentTrace.jsx";
 import Disclaimer from "../components/Disclaimer.jsx";
+import Icon from "../components/Icon.jsx";
 import PhotoUpload from "../components/PhotoUpload.jsx";
 import Questionnaire, { BODY_SITES } from "../components/Questionnaire.jsx";
-
 import { clearLastRun, loadLastRun, saveLastRun } from "../lastRun.js";
 
 function CaseSummary({ questionnaire, hasImage, phase, onReset }) {
@@ -21,55 +21,44 @@ function CaseSummary({ questionnaire, hasImage, phase, onReset }) {
   ].filter(Boolean);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Case being assessed
-      </p>
-      <dl className="mt-2 space-y-1 text-sm text-slate-700">
-        <div className="flex justify-between gap-2">
-          <dt className="text-slate-500">Photograph</dt>
-          <dd className="font-medium">{hasImage ? "Provided" : "None"}</dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-slate-500">Age</dt>
-          <dd className="font-medium">{questionnaire.age} years</dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-slate-500">Duration</dt>
-          <dd className="font-medium">{questionnaire.duration_months} months</dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-slate-500">Body site</dt>
-          <dd className="font-medium">{site}</dd>
-        </div>
-        <div className="flex justify-between gap-2">
-          <dt className="text-slate-500">Skin type</dt>
-          <dd className="font-medium">Fitzpatrick {questionnaire.fitzpatrick}</dd>
-        </div>
+    <div className="card p-4">
+      <p className="section-label">Case being assessed</p>
+      <dl className="mt-3 space-y-2 text-[13px]">
+        {[
+          ["Photograph", hasImage ? "Provided" : "None"],
+          ["Age", `${questionnaire.age} years`],
+          ["Duration", `${questionnaire.duration_months} months`],
+          ["Body site", site],
+          ["Skin type", `Fitzpatrick ${questionnaire.fitzpatrick}`],
+        ].map(([dt, dd]) => (
+          <div key={dt} className="flex justify-between gap-2 border-b border-line pb-2 last:border-0 last:pb-0">
+            <dt className="text-ink-muted">{dt}</dt>
+            <dd className="font-medium text-ink">{dd}</dd>
+          </div>
+        ))}
       </dl>
       {flags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           {flags.map((f) => (
             <span
               key={f}
-              className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-900"
+              className="inline-flex items-center gap-1.5 rounded-full border border-review-line bg-review-bg px-2 py-0.5 text-[11px] font-medium text-review-text"
             >
+              <span className="h-1.5 w-1.5 rounded-full bg-review-dot" />
               {f}
             </span>
           ))}
         </div>
       )}
       {phase === "running" ? (
-        <p className="mt-3 text-sm font-medium text-blue-600">
-          <span className="animate-pulse">●</span> Assessing…
+        <p className="mt-4 flex items-center gap-2 text-[13px] font-medium text-brand-600">
+          <Icon name="loader" size={14} className="animate-spin" />
+          Assessing…
         </p>
       ) : (
-        <button
-          type="button"
-          onClick={onReset}
-          className="mt-3 min-h-[44px] w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-medium text-slate-700 hover:bg-slate-50"
-        >
-          ← Start a new case
+        <button type="button" onClick={onReset} className="btn-outline mt-4 w-full">
+          <Icon name="arrow-left" size={15} />
+          Start a new case
         </button>
       )}
     </div>
@@ -227,16 +216,16 @@ export default function AssessPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-2">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">New assessment</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-xl font-semibold tracking-tight text-ink">New assessment</h1>
+          <p className="mt-0.5 text-[13px] text-ink-muted">
             One photograph + eight questions → an urgency recommendation.
           </p>
         </div>
         {!user && (
-          <p className="text-sm text-slate-500">
-            <Link to="/login" className="font-semibold text-blue-600 hover:underline">
+          <p className="text-[13px] text-ink-muted">
+            <Link to="/login" className="font-medium text-brand-600 hover:underline">
               Log in
             </Link>{" "}
             to save this case to your history.
@@ -247,13 +236,14 @@ export default function AssessPage() {
       <Disclaimer />
 
       {health && !health.ollama && phase === "form" && (
-        <p className="mt-4 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-600">
-          Note: the local explanation model is currently unavailable. Cases can
-          still be assessed; they will be treated with extra caution.
+        <p className="mt-3 flex items-start gap-2 rounded-md border border-line bg-white px-3.5 py-2.5 text-xs text-ink-secondary">
+          <Icon name="info" size={14} className="mt-px shrink-0 text-ink-muted" />
+          The local explanation model is currently unavailable. Cases can still
+          be assessed; they will be treated with extra caution.
         </p>
       )}
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-5">
+      <div className="mt-6 grid gap-6 lg:grid-cols-5">
         {/* Left: the case form, replaced by a compact summary once running */}
         <div className="lg:col-span-2">
           {phase === "form" ? (
@@ -266,16 +256,18 @@ export default function AssessPage() {
               <Questionnaire value={questionnaire} onChange={setQuestionnaire} />
 
               {error && (
-                <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
-                  Error: {error}
+                <p
+                  role="alert"
+                  className="flex items-start gap-2 rounded-md border border-urgent-line bg-urgent-bg px-3.5 py-2.5 text-[13px] font-medium text-urgent-text"
+                >
+                  <Icon name="alert-triangle" size={15} className="mt-px shrink-0" />
+                  {error}
                 </p>
               )}
 
-              <button
-                type="submit"
-                className="min-h-[48px] w-full rounded-xl bg-blue-600 px-4 py-3 text-lg font-bold text-white hover:bg-blue-700"
-              >
+              <button type="submit" className="btn-primary h-11 w-full text-[15px]">
                 Assess this case
+                <Icon name="arrow-right" size={16} />
               </button>
             </form>
           ) : (
@@ -289,12 +281,12 @@ export default function AssessPage() {
         </div>
 
         {/* Right: live pipeline + result */}
-        <div ref={pipelineRef} className="scroll-mt-20 space-y-6 lg:col-span-3">
+        <div ref={pipelineRef} className="scroll-mt-20 space-y-4 lg:col-span-3">
           {phase === "form" && (
-            <div className="hidden h-full min-h-[300px] items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 p-8 text-center text-slate-400 lg:flex">
-              <div>
-                <p className="text-4xl" aria-hidden="true">🩺</p>
-                <p className="mt-2 font-medium">
+            <div className="hidden h-full min-h-[280px] items-center justify-center rounded-lg border border-dashed border-line-strong lg:flex">
+              <div className="text-center text-ink-faint">
+                <Icon name="activity" size={24} className="mx-auto" />
+                <p className="mt-2 text-sm font-medium">
                   The live agent pipeline and result will appear here.
                 </p>
               </div>
@@ -304,7 +296,7 @@ export default function AssessPage() {
           {phase === "running" && (
             <>
               <AgentTrace events={events} running />
-              <p className="text-center text-sm text-slate-500">
+              <p className="text-center text-[13px] text-ink-muted">
                 You'll be taken to the results page when the analysis
                 completes.
               </p>
@@ -314,16 +306,18 @@ export default function AssessPage() {
           {phase === "completed" && (
             <>
               {caseId && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 px-4 py-3">
-                  <p className="font-semibold text-emerald-800">
-                    ✓ Analysis complete
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ok-line border-l-4 border-l-ok-dot bg-ok-bg px-4 py-3">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-ok-text">
+                    <Icon name="check" size={16} />
+                    Analysis complete
                   </p>
                   <Link
                     to={`/cases/${caseId}`}
                     state={{ fromAssessment: true, events }}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
+                    className="btn-primary h-9 px-3 text-[13px]"
                   >
-                    View full result →
+                    View full result
+                    <Icon name="arrow-right" size={14} />
                   </Link>
                 </div>
               )}
@@ -332,12 +326,16 @@ export default function AssessPage() {
           )}
 
           {phase === "error" && (
-            <div role="alert" className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
-              <p className="font-bold text-red-800">
+            <div
+              role="alert"
+              className="rounded-lg border border-urgent-line border-l-4 border-l-urgent-dot bg-urgent-bg p-4"
+            >
+              <p className="flex items-center gap-2 text-sm font-semibold text-urgent-text">
+                <Icon name="alert-triangle" size={16} />
                 The assessment could not be completed.
               </p>
-              <p className="mt-1 text-sm text-red-700">{error}</p>
-              <p className="mt-2 text-sm font-medium text-red-800">
+              <p className="mt-1 text-[13px] text-urgent-text/90">{error}</p>
+              <p className="mt-2 text-[13px] font-medium text-urgent-text">
                 If you are concerned about this lesion, please see a clinician —
                 do not wait for this tool.
               </p>

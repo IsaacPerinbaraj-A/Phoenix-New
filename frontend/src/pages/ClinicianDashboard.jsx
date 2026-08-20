@@ -2,28 +2,16 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getClinicianQueue, getModelInfo, getStats, setCaseStatus } from "../api.js";
 import { isClinician } from "../auth.js";
+import Icon from "../components/Icon.jsx";
+import { BandPill, statusMeta } from "../components/BandPill.jsx";
 
 const CASE_STATUSES = ["pending", "reviewed", "referred", "closed"];
 
-const STATUS_STYLE = {
-  pending: "border-amber-300 bg-amber-50 text-amber-800",
-  reviewed: "border-blue-300 bg-blue-50 text-blue-800",
-  referred: "border-purple-300 bg-purple-50 text-purple-800",
-  closed: "border-slate-300 bg-slate-100 text-slate-600",
-};
-
-const BAND_CHIP = {
-  URGENT: "bg-red-600 text-white",
-  REVIEW: "bg-orange-500 text-white",
-  MONITOR: "bg-yellow-500 text-white",
-  INCONCLUSIVE: "bg-slate-600 text-white",
-};
-
-function priorityColor(score) {
-  if (score >= 75) return "bg-red-600";
-  if (score >= 50) return "bg-orange-500";
-  if (score >= 25) return "bg-yellow-500";
-  return "bg-emerald-500";
+function priorityDot(score) {
+  if (score >= 75) return "bg-urgent-dot";
+  if (score >= 50) return "bg-review-dot";
+  if (score >= 25) return "bg-monitor-dot";
+  return "bg-ok-dot";
 }
 
 function formatDate(iso) {
@@ -40,16 +28,15 @@ function pct(value) {
     : `${(value * 100).toFixed(1)}%`;
 }
 
-function StatTile({ label, value, sub, accent }) {
+function StatTile({ label, value, sub, dot }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <div className="card p-3.5">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+        {dot && <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
         {label}
       </p>
-      <p className={`mt-1 text-3xl font-extrabold ${accent || "text-slate-800"}`}>
-        {value}
-      </p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
+      <p className="num mt-1 text-2xl font-semibold text-ink">{value}</p>
+      {sub && <p className="mt-0.5 text-[11px] leading-snug text-ink-muted">{sub}</p>}
     </div>
   );
 }
@@ -93,26 +80,25 @@ export default function ClinicianDashboard() {
   if (!clinician) {
     return (
       <div className="flex items-center justify-center px-4 py-16">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-4xl" aria-hidden="true">🔒</p>
-          <h1 className="mt-2 text-xl font-bold text-slate-800">
+        <div className="card w-full max-w-md p-6 text-center">
+          <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-md bg-brand-50 text-brand-600">
+            <Icon name="lock" size={18} />
+          </span>
+          <h1 className="mt-3 text-lg font-semibold tracking-tight text-ink">
             Clinician access only
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">
             This dashboard shows the prioritised review queue and live
             statistics for all assessed cases. Log in with the clinician
             account to view it.
           </p>
-          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-left text-sm text-slate-700">
-            <p className="font-semibold text-blue-800">Demo clinician account</p>
-            <p className="mt-1 font-mono text-xs">
-              username: clinician<br />password: clinic123
+          <div className="mt-4 rounded-md border border-brand-100 bg-brand-50 p-3 text-left text-[13px]">
+            <p className="font-semibold text-brand-700">Demo clinician account</p>
+            <p className="num mt-0.5 text-xs text-ink-secondary">
+              username: clinician · password: clinic123
             </p>
           </div>
-          <Link
-            to="/login"
-            className="mt-5 inline-block rounded-xl bg-blue-600 px-6 py-2.5 font-semibold text-white hover:bg-blue-700"
-          >
+          <Link to="/login" className="btn-primary mt-4 w-full">
             Go to login
           </Link>
         </div>
@@ -122,9 +108,11 @@ export default function ClinicianDashboard() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Clinician dashboard</h1>
-        <p className="text-sm text-slate-500">
+      <div className="mb-5">
+        <h1 className="text-xl font-semibold tracking-tight text-ink">
+          Clinician dashboard
+        </h1>
+        <p className="mt-0.5 text-[13px] text-ink-muted">
           All assessed cases, ordered by a deterministic priority score
           (band-dominated). Not a validated clinical score — an ordering aid
           for review.
@@ -132,30 +120,21 @@ export default function ClinicianDashboard() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+        <p
+          role="alert"
+          className="mb-4 rounded-md border border-urgent-line bg-urgent-bg px-3.5 py-2.5 text-[13px] font-medium text-urgent-text"
+        >
           {error}
         </p>
       )}
 
       {/* Stats */}
       {stats && (
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <StatTile label="Total cases" value={stats.total_cases} />
-          <StatTile
-            label="🔴 Urgent"
-            value={stats.by_band.URGENT}
-            accent="text-red-600"
-          />
-          <StatTile
-            label="🟠 Review"
-            value={stats.by_band.REVIEW}
-            accent="text-orange-500"
-          />
-          <StatTile
-            label="🟡 Monitor"
-            value={stats.by_band.MONITOR}
-            accent="text-yellow-600"
-          />
+          <StatTile label="Urgent" value={stats.by_band.URGENT} dot="bg-urgent-dot" />
+          <StatTile label="Review" value={stats.by_band.REVIEW} dot="bg-review-dot" />
+          <StatTile label="Monitor" value={stats.by_band.MONITOR} dot="bg-monitor-dot" />
           <StatTile
             label="Safety overrides"
             value={pct(stats.override_rate)}
@@ -170,57 +149,53 @@ export default function ClinicianDashboard() {
       )}
 
       {/* Model benchmarks — real evaluation results only */}
-      <div className="mb-8 grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Vision model benchmark (HAM10000 test split)
-          </p>
+      <div className="mb-6 grid gap-3 lg:grid-cols-2">
+        <div className="card p-4">
+          <p className="section-label">Vision model benchmark (HAM10000 test split)</p>
           {vision ? (
-            <div className="mt-2 flex flex-wrap gap-6">
+            <div className="mt-2 flex flex-wrap gap-8">
               <div>
-                <p className="text-2xl font-bold text-slate-800">
+                <p className="num text-xl font-semibold text-ink">
                   {pct(vision.malignant_recall)}
                 </p>
-                <p className="text-xs text-slate-500">Malignant-group recall</p>
+                <p className="text-[11px] text-ink-muted">Malignant-group recall</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-800">
+                <p className="num text-xl font-semibold text-ink">
                   {pct(vision.balanced_accuracy)}
                 </p>
-                <p className="text-xs text-slate-500">Balanced accuracy</p>
+                <p className="text-[11px] text-ink-muted">Balanced accuracy</p>
               </div>
             </div>
           ) : (
-            <p className="mt-2 font-medium text-slate-400">Not yet evaluated</p>
+            <p className="mt-2 text-sm font-medium text-ink-faint">Not yet evaluated</p>
           )}
-          <p className="mt-2 text-xs text-slate-400">
-            Dermatoscopic benchmark — does not transfer directly to
-            smartphone photos.
+          <p className="mt-2 text-[11px] text-ink-faint">
+            Dermatoscopic benchmark — does not transfer directly to smartphone
+            photos.
           </p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            History model benchmark
-          </p>
+        <div className="card p-4">
+          <p className="section-label">History model benchmark</p>
           {history ? (
-            <div className="mt-2 flex flex-wrap gap-6">
+            <div className="mt-2 flex flex-wrap gap-8">
               <div>
-                <p className="text-2xl font-bold text-slate-800">
+                <p className="num text-xl font-semibold text-ink">
                   {pct(history.malignant_recall)}
                 </p>
-                <p className="text-xs text-slate-500">Malignant recall</p>
+                <p className="text-[11px] text-ink-muted">Malignant recall</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-800">
+                <p className="num text-xl font-semibold text-ink">
                   {pct(history.balanced_accuracy)}
                 </p>
-                <p className="text-xs text-slate-500">Balanced accuracy</p>
+                <p className="text-[11px] text-ink-muted">Balanced accuracy</p>
               </div>
             </div>
           ) : (
-            <p className="mt-2 font-medium text-slate-400">Not yet evaluated</p>
+            <p className="mt-2 text-sm font-medium text-ink-faint">Not yet evaluated</p>
           )}
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-[11px] text-ink-faint">
             Trained on synthetic questionnaires — pipeline validation, not
             clinical validation.
           </p>
@@ -228,96 +203,110 @@ export default function ClinicianDashboard() {
       </div>
 
       {/* Prioritised queue */}
-      <h2 className="mb-3 text-lg font-bold text-slate-800">Review queue</h2>
+      <p className="section-label mb-3">Review queue</p>
       {queue !== null && queue.length === 0 && (
-        <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-white/60 p-12 text-center text-slate-400">
-          <p className="text-4xl" aria-hidden="true">🗂️</p>
-          <p className="mt-2 font-medium">No cases in the queue yet.</p>
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed border-line-strong">
+          <div className="text-center text-ink-faint">
+            <Icon name="folder" size={22} className="mx-auto" />
+            <p className="mt-2 text-sm font-medium text-ink-muted">
+              No cases in the queue yet.
+            </p>
+          </div>
         </div>
       )}
       {queue !== null && queue.length > 0 && (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[860px] text-left text-sm">
+        <div className="card overflow-x-auto">
+          <table className="w-full min-w-[860px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-slate-200 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Band</th>
-                <th className="px-4 py-3">Risk score</th>
-                <th className="px-4 py-3">Rules</th>
-                <th className="px-4 py-3">Photo</th>
-                <th className="px-4 py-3">Submitted</th>
-                <th className="px-4 py-3">By</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3"></th>
+              <tr className="border-b border-line">
+                <th className="table-th text-right">Priority</th>
+                <th className="table-th">Band</th>
+                <th className="table-th">Risk</th>
+                <th className="table-th text-right">Rules</th>
+                <th className="table-th">Photo</th>
+                <th className="table-th">Submitted</th>
+                <th className="table-th">By</th>
+                <th className="table-th">Status</th>
+                <th className="table-th"></th>
               </tr>
             </thead>
             <tbody>
-              {queue.map((c) => (
-                <tr key={c.case_id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white ${priorityColor(c.priority_score)}`}>
-                        {c.priority_score}
+              {queue.map((c) => {
+                const sm = statusMeta(c.status || "pending");
+                return (
+                  <tr
+                    key={c.case_id}
+                    className="border-b border-line transition-colors duration-150 last:border-0 hover:bg-page"
+                  >
+                    <td className="table-td text-right">
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className={`h-1.5 w-1.5 rounded-full ${priorityDot(c.priority_score)}`} />
+                        <span className="num font-medium text-ink">{c.priority_score}</span>
+                        <span className="num text-[11px] text-ink-faint">/100</span>
                       </span>
-                      <span className="text-xs text-slate-400">/100</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${BAND_CHIP[c.final_band] || BAND_CHIP.INCONCLUSIVE}`}>
-                      {c.final_band || "UNKNOWN"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {c.risk_score !== null && c.risk_score !== undefined ? (
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-16 rounded bg-slate-200">
-                          <div
-                            className="h-2 rounded bg-blue-500"
-                            style={{ width: `${Math.min(c.risk_score * 100, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-medium text-slate-600">
-                          {c.risk_score.toFixed(2)}
+                    </td>
+                    <td className="table-td">
+                      <BandPill band={c.final_band} />
+                    </td>
+                    <td className="table-td">
+                      {c.risk_score !== null && c.risk_score !== undefined ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-1 w-14 rounded-full bg-stone-200">
+                            <span
+                              className="block h-1 rounded-full bg-review-dot"
+                              style={{ width: `${Math.min(c.risk_score * 100, 100)}%` }}
+                            />
+                          </span>
+                          <span className="num text-xs text-ink-secondary">
+                            {c.risk_score.toFixed(2)}
+                          </span>
                         </span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{c.trigger_count}</td>
-                  <td className="px-4 py-3">{c.image_ok ? "✅" : "—"}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
-                    {formatDate(c.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
-                    {c.username || "anonymous"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={c.status || "pending"}
-                      onChange={(e) => changeStatus(c.case_id, e.target.value)}
-                      aria-label={`Status for case ${c.case_id.slice(0, 8)}`}
-                      className={`rounded-full border px-2.5 py-1 text-xs font-bold capitalize ${
-                        STATUS_STYLE[c.status] || STATUS_STYLE.pending
-                      }`}
-                    >
-                      {CASE_STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link
-                      to={`/cases/${c.case_id}`}
-                      className="font-medium text-blue-600 hover:underline"
-                    >
-                      Review →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+                      ) : (
+                        <span className="text-ink-faint">—</span>
+                      )}
+                    </td>
+                    <td className="table-td num text-right text-ink-secondary">
+                      {c.trigger_count}
+                    </td>
+                    <td className="table-td">
+                      {c.image_ok ? (
+                        <Icon name="check" size={14} className="text-ok-text" />
+                      ) : (
+                        <span className="text-ink-faint">—</span>
+                      )}
+                    </td>
+                    <td className="table-td text-xs text-ink-muted">
+                      {formatDate(c.created_at)}
+                    </td>
+                    <td className="table-td text-xs text-ink-muted">
+                      {c.username || "anonymous"}
+                    </td>
+                    <td className="table-td">
+                      <select
+                        value={c.status || "pending"}
+                        onChange={(e) => changeStatus(c.case_id, e.target.value)}
+                        aria-label={`Status for case ${c.case_id.slice(0, 8)}`}
+                        className={`h-7 rounded-full border px-2 text-[11px] font-semibold capitalize transition-colors duration-150 ${sm.bg} ${sm.line} ${sm.text}`}
+                      >
+                        {CASE_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="table-td">
+                      <Link
+                        to={`/cases/${c.case_id}`}
+                        className="inline-flex items-center gap-1 text-[13px] font-medium text-brand-600 hover:underline"
+                      >
+                        Review
+                        <Icon name="chevron-right" size={13} />
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

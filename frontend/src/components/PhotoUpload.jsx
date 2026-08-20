@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import Icon from "./Icon.jsx";
 
 // Ask the backend to run the EXACT ingestion quality gate on the photo,
 // so the early warning always matches what the pipeline will decide.
@@ -112,21 +113,25 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
 
   return (
     <section aria-labelledby="photo-heading" className="space-y-3">
-      <h2 id="photo-heading" className="text-lg font-semibold text-slate-800">
-        1. Lesion photograph <span className="font-normal text-slate-500">(optional but recommended)</span>
-      </h2>
+      <div>
+        <h2 id="photo-heading" className="text-base font-semibold tracking-tight text-ink">
+          Lesion photograph
+        </h2>
+        <p className="text-[13px] text-ink-muted">Optional but recommended</p>
+      </div>
 
-      <details className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-        <summary className="cursor-pointer text-sm font-medium text-slate-600">
-          📋 Tips for a usable photo
+      <details className="card px-3.5 py-2.5">
+        <summary className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink-secondary">
+          <Icon name="info" size={14} className="text-ink-muted" />
+          Tips for a usable photo
         </summary>
-        <ul className="mt-2 list-disc pl-5 text-sm text-slate-600">
-          <li>Use good daylight.</li>
-          <li>Keep the lesion centred.</li>
-          <li>Hold the phone steady to avoid blur.</li>
-          <li>Photograph from roughly a consistent distance.</li>
+        <ul className="mt-2 space-y-1 pl-6 text-[13px] text-ink-secondary">
+          <li className="list-disc">Use good daylight.</li>
+          <li className="list-disc">Keep the lesion centred.</li>
+          <li className="list-disc">Hold the phone steady to avoid blur.</li>
+          <li className="list-disc">Photograph from roughly a consistent distance.</li>
         </ul>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1.5 pl-6 text-xs text-ink-muted">
           Following these tips helps, but does not guarantee the photo can be
           assessed.
         </p>
@@ -147,16 +152,18 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
           <button
             type="button"
             onClick={openCamera}
-            className="rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 px-4 py-6 text-center font-medium text-blue-700 hover:border-blue-400 hover:bg-blue-100"
+            className="flex h-24 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong bg-white text-sm font-medium text-ink-secondary transition-colors duration-150 hover:border-brand-500 hover:text-brand-600"
           >
-            📷 Use camera
+            <Icon name="camera" size={20} />
+            Use camera
           </button>
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-6 text-center font-medium text-slate-600 hover:border-blue-400 hover:text-blue-600"
+            className="flex h-24 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-line-strong bg-white text-sm font-medium text-ink-secondary transition-colors duration-150 hover:border-brand-500 hover:text-brand-600"
           >
-            🖼️ Upload a photo
+            <Icon name="upload" size={20} />
+            Upload a photo
           </button>
         </div>
       ) : (
@@ -164,43 +171,50 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
           <img
             src={previewUrl}
             alt="Preview of the uploaded lesion photograph"
-            className="max-h-64 w-full rounded-xl border border-slate-200 object-contain"
+            className="max-h-64 w-full rounded-lg border border-line object-contain"
           />
           {checking && (
-            <p className="text-xs text-slate-500">Checking photo quality…</p>
+            <p className="flex items-center gap-1.5 text-xs text-ink-muted">
+              <Icon name="loader" size={12} className="animate-spin" />
+              Checking photo quality…
+            </p>
           )}
           {qualityNote && (
             <div
               role="alert"
-              className="rounded-lg border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-900"
+              className="flex items-start gap-2.5 rounded-md border border-review-line bg-review-bg px-3.5 py-2.5 text-[13px] text-review-text"
             >
-              <p className="font-bold">⚠️ This photo will be rejected: {qualityNote}</p>
-              <p className="mt-0.5">
-                The assessment would then use the answers only. Please retake
-                the photo — hold the phone steady in good light.
-              </p>
+              <Icon name="alert-triangle" size={15} className="mt-0.5 shrink-0" />
+              <div>
+                <p className="font-semibold">
+                  This photo will be rejected: {qualityNote}
+                </p>
+                <p className="mt-0.5">
+                  The assessment would then use the answers only. Please retake
+                  the photo — hold the phone steady in good light.
+                </p>
+              </div>
             </div>
           )}
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={openCamera}
-              className="min-h-[44px] flex-1 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
-            >
-              📷 Retake
+            <button type="button" onClick={openCamera} className="btn-outline flex-1">
+              <Icon name="camera" size={15} />
+              Retake
             </button>
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="min-h-[44px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="btn-outline flex-1"
             >
+              <Icon name="image" size={15} />
               Replace
             </button>
             <button
               type="button"
               onClick={() => handleFile(null)}
-              className="min-h-[44px] flex-1 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+              className="btn-danger-outline flex-1"
             >
+              <Icon name="x" size={15} />
               Remove
             </button>
           </div>
@@ -208,7 +222,7 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
       )}
 
       {cameraError && (
-        <p className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-600">
+        <p className="rounded-md border border-line bg-white px-3.5 py-2.5 text-[13px] text-ink-secondary">
           {cameraError}
         </p>
       )}
@@ -216,7 +230,7 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
       {/* Live camera modal */}
       {cameraOpen && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-navy/95 p-4"
           role="dialog"
           aria-label="Camera"
         >
@@ -224,25 +238,26 @@ export default function PhotoUpload({ file, onChange, onQualityWarning }) {
             ref={videoRef}
             playsInline
             muted
-            className="max-h-[70vh] w-full max-w-2xl rounded-xl object-contain"
+            className="max-h-[70vh] w-full max-w-2xl rounded-lg object-contain"
           />
-          <div className="mt-4 flex w-full max-w-2xl gap-3">
+          <div className="mt-4 flex w-full max-w-2xl gap-2">
             <button
               type="button"
               onClick={captureFrame}
-              className="min-h-[52px] flex-1 rounded-xl bg-blue-600 px-4 py-3 text-lg font-bold text-white hover:bg-blue-700"
+              className="btn-primary h-12 flex-1 text-base"
             >
-              📸 Capture
+              <Icon name="camera" size={18} />
+              Capture
             </button>
             <button
               type="button"
               onClick={closeCamera}
-              className="min-h-[52px] flex-1 rounded-xl border border-slate-400 px-4 py-3 text-lg font-medium text-slate-200 hover:bg-slate-800"
+              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-md border border-navy-line px-4 text-base font-medium text-white transition-colors duration-150 hover:bg-navy-soft"
             >
               Cancel
             </button>
           </div>
-          <p className="mt-2 text-center text-xs text-slate-400">
+          <p className="mt-3 text-center text-xs text-navy-text">
             Keep the lesion centred and hold steady.
           </p>
         </div>

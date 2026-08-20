@@ -1,46 +1,32 @@
+import Icon from "./Icon.jsx";
+
 const AGENTS = [
-  ["ingestion", "Ingestion", "Checks photo quality"],
+  ["ingestion", "Ingestion", "Photo quality gate"],
   ["vision", "Vision", "EfficientNet lesion analysis"],
   ["history", "History", "Structured risk score"],
-  ["reasoning", "Reasoning", "LLM supporting explanation (advisory)"],
+  ["reasoning", "Reasoning", "LLM explanation (advisory)"],
   ["safety", "Safety", "Deterministic final decision"],
 ];
 
-const STATUS_STYLE = {
-  waiting: "border-slate-200 bg-slate-50 text-slate-400",
-  running: "border-blue-300 bg-blue-50 text-blue-700",
-  completed: "border-emerald-300 bg-emerald-50 text-emerald-800",
-  skipped: "border-slate-300 bg-slate-100 text-slate-600",
-  failed_safe: "border-amber-300 bg-amber-50 text-amber-800",
+const STATUS = {
+  waiting: { icon: "clock", cls: "text-ink-faint", label: "Waiting" },
+  running: { icon: "loader", cls: "text-brand-600", label: "Running…", spin: true },
+  completed: { icon: "check", cls: "text-ok-text", label: "Completed" },
+  skipped: { icon: "corner-down-right", cls: "text-ink-muted", label: "Skipped" },
+  failed_safe: { icon: "alert-triangle", cls: "text-review-text", label: "Failed safely" },
 };
 
-const STATUS_LABEL = {
-  waiting: "Waiting",
-  running: "Running…",
-  completed: "Completed",
-  skipped: "SKIPPED",
-  failed_safe: "Failed safely",
-};
-
-const STATUS_ICON = {
-  waiting: "○",
-  running: "◐",
-  completed: "✓",
-  skipped: "⤼",
-  failed_safe: "⚠",
-};
-
-function ProbBar({ label, value, tone }) {
+function Bar({ label, value, tone }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="w-24 shrink-0 text-xs text-slate-500">{label}</span>
-      <div className="h-2 flex-1 rounded-full bg-slate-200">
+      <span className="w-28 shrink-0 text-xs text-ink-muted">{label}</span>
+      <div className="h-1 flex-1 rounded-full bg-stone-200">
         <div
-          className={`h-2 rounded-full ${tone || "bg-blue-500"}`}
+          className={`h-1 rounded-full ${tone || "bg-brand-500"}`}
           style={{ width: `${Math.min(Math.max(value, 0) * 100, 100)}%` }}
         />
       </div>
-      <span className="w-12 shrink-0 text-right text-xs font-medium text-slate-600">
+      <span className="num w-11 shrink-0 text-right text-xs text-ink-secondary">
         {(value * 100).toFixed(0)}%
       </span>
     </div>
@@ -51,38 +37,45 @@ function AgentDetails({ agent, output }) {
   switch (agent) {
     case "ingestion":
       return (
-        <div className="space-y-1 text-sm">
+        <div className="space-y-1 text-[13px] text-ink-secondary">
           <p>
             Photo usable:{" "}
-            <strong>{output.image_ok ? "Yes" : "No"}</strong>
+            <strong className="text-ink">{output.image_ok ? "Yes" : "No"}</strong>
           </p>
           {output.quality_note && <p>{output.quality_note}</p>}
         </div>
       );
     case "vision": {
       const v = output.vision;
-      if (!v) return <p className="text-sm">No model output — degraded safely, no probabilities fabricated.</p>;
+      if (!v)
+        return (
+          <p className="text-[13px] text-ink-secondary">
+            No model output — degraded safely, no probabilities fabricated.
+          </p>
+        );
       const top = Object.entries(v.probs).sort(([, a], [, b]) => b - a).slice(0, 4);
       return (
         <div className="space-y-1.5">
-          <ProbBar label="Malignant group" value={v.malignant_p} tone="bg-red-500" />
-          <ProbBar label="Confidence" value={v.confidence} tone="bg-blue-500" />
-          <p className="pt-1 text-xs font-semibold text-slate-500">Top classes</p>
+          <Bar label="Malignant group" value={v.malignant_p} tone="bg-urgent-dot" />
+          <Bar label="Confidence" value={v.confidence} tone="bg-brand-500" />
+          <p className="pt-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
+            Top classes
+          </p>
           {top.map(([cls, p]) => (
-            <ProbBar key={cls} label={cls} value={Number(p)} tone="bg-slate-400" />
+            <Bar key={cls} label={cls} value={Number(p)} tone="bg-stone-400" />
           ))}
         </div>
       );
     }
     case "history": {
       const h = output.history;
-      if (!h) return <p className="text-sm">No history output.</p>;
+      if (!h) return <p className="text-[13px] text-ink-secondary">No history output.</p>;
       return (
         <div className="space-y-1.5">
-          <ProbBar label="Risk score" value={h.risk_score} tone="bg-orange-500" />
-          <p className="text-xs text-slate-500">Source: {h.source}</p>
+          <Bar label="Risk score" value={h.risk_score} tone="bg-review-dot" />
+          <p className="text-xs text-ink-muted">Source: {h.source}</p>
           {h.red_flags.length > 0 && (
-            <ul className="list-disc pl-5 text-sm">
+            <ul className="list-disc pl-5 text-[13px] text-ink-secondary">
               {h.red_flags.map((f) => (
                 <li key={f}>{f}</li>
               ))}
@@ -95,22 +88,22 @@ function AgentDetails({ agent, output }) {
       const r = output.reasoning;
       if (!r)
         return (
-          <p className="text-sm">
+          <p className="text-[13px] text-ink-secondary">
             Explanation model unavailable — safety rule R8 treats the case
             with extra caution.
           </p>
         );
       return (
-        <div className="space-y-1 text-sm">
+        <div className="space-y-1 text-[13px] text-ink-secondary">
           <p>
-            Advisory band: <strong>{r.suggested_band}</strong>{" "}
-            <span className="text-xs opacity-70">(advisory only)</span>
+            Advisory band: <strong className="text-ink">{r.suggested_band}</strong>{" "}
+            <span className="text-xs text-ink-muted">(advisory only)</span>
           </p>
           {r.abcde && (
             <ul className="space-y-0.5">
               {Object.entries(r.abcde).map(([k, v]) => (
                 <li key={k}>
-                  <strong>{k}:</strong> {v}
+                  <strong className="text-ink">{k}:</strong> {v}
                 </li>
               ))}
             </ul>
@@ -121,9 +114,9 @@ function AgentDetails({ agent, output }) {
     }
     case "safety":
       return (
-        <div className="space-y-1 text-sm">
+        <div className="space-y-1 text-[13px] text-ink-secondary">
           <p>
-            Final band: <strong>{output.final_band}</strong>
+            Final band: <strong className="text-ink">{output.final_band}</strong>
           </p>
           {output.safety_explanations?.length > 0 && (
             <ul className="list-disc pl-5">
@@ -134,7 +127,7 @@ function AgentDetails({ agent, output }) {
           )}
           {output.instruction && (
             <p>
-              Instruction: <strong>{output.instruction}</strong>
+              Instruction: <strong className="text-ink">{output.instruction}</strong>
             </p>
           )}
         </div>
@@ -189,11 +182,11 @@ export default function AgentTrace({ events, running }) {
   let sawIncomplete = false;
 
   return (
-    <section aria-labelledby="trace-heading" className="space-y-2">
-      <h2 id="trace-heading" className="text-lg font-semibold text-slate-800">
+    <section aria-labelledby="trace-heading">
+      <p id="trace-heading" className="section-label mb-3">
         Agent pipeline
-      </h2>
-      <ol className="space-y-2">
+      </p>
+      <ol className="card divide-y divide-line">
         {AGENTS.map(([key, name, blurb]) => {
           const event = byAgent[key];
           let status = "waiting";
@@ -205,44 +198,47 @@ export default function AgentTrace({ events, running }) {
           }
           if (!event) sawIncomplete = true;
 
+          const meta = STATUS[status];
           const summary = event ? summarize(key, event.output) : null;
           return (
-            <li
-              key={key}
-              className={`rounded-xl border px-4 py-3 ${STATUS_STYLE[status]}`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span
-                    aria-hidden="true"
-                    className={`text-lg ${status === "running" ? "animate-pulse" : ""}`}
-                  >
-                    {STATUS_ICON[status]}
+            <li key={key} className="px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className={`shrink-0 ${meta.cls}`}>
+                    <Icon
+                      name={meta.icon}
+                      size={16}
+                      className={meta.spin ? "animate-spin" : ""}
+                    />
                   </span>
-                  <span className="font-semibold">{name}</span>
-                  <span className="hidden text-xs opacity-70 sm:inline">{blurb}</span>
+                  <span className="text-sm font-semibold text-ink">{name}</span>
+                  <span className="hidden truncate text-xs text-ink-muted lg:inline">
+                    {blurb}
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-medium">
+                <div className="flex shrink-0 items-center gap-2.5 text-xs">
                   {event?.elapsed_ms != null && (
-                    <span className="opacity-70">{event.elapsed_ms} ms</span>
+                    <span className="num text-ink-faint">{event.elapsed_ms} ms</span>
                   )}
-                  <span>{STATUS_LABEL[status]}</span>
+                  <span className={`font-medium ${meta.cls}`}>{meta.label}</span>
                 </div>
               </div>
 
               {status === "skipped" && (
-                <p className="mt-1 text-sm">
+                <p className="mt-1 pl-[26px] text-[13px] text-ink-secondary">
                   Reason: {event?.reason || "Not needed for this case."}
                 </p>
               )}
-              {summary && <p className="mt-1 text-sm">{summary}</p>}
+              {summary && (
+                <p className="mt-1 pl-[26px] text-[13px] text-ink-secondary">{summary}</p>
+              )}
 
               {event?.output && (
-                <details className="mt-1">
-                  <summary className="cursor-pointer text-xs underline opacity-70">
+                <details className="mt-1 pl-[26px]">
+                  <summary className="cursor-pointer text-xs font-medium text-ink-muted transition-colors duration-150 hover:text-ink-secondary">
                     Details
                   </summary>
-                  <div className="mt-2 rounded-lg bg-white/70 p-3">
+                  <div className="mt-2 rounded-md border border-line bg-page p-3">
                     <AgentDetails agent={key} output={event.output} />
                   </div>
                 </details>
@@ -255,17 +251,20 @@ export default function AgentTrace({ events, running }) {
       {overridden && (
         <div
           role="alert"
-          className="rounded-xl border-2 border-red-400 bg-red-50 px-4 py-3"
+          className="mt-3 flex items-start gap-2.5 rounded-lg border border-urgent-line border-l-4 border-l-urgent-dot bg-urgent-bg px-4 py-3"
         >
-          <p className="font-bold text-red-800">
-            Safety override: {advisory} → {finalBand}
-          </p>
-          <p className="text-sm text-red-700">
-            Triggered: {byAgent.safety.output.safety_triggers.join(", ")}
-          </p>
-          <p className="mt-1 text-xs text-red-600">
-            The LLM explains. Deterministic rules decide.
-          </p>
+          <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-urgent-text" />
+          <div>
+            <p className="text-sm font-semibold text-urgent-text">
+              Safety override: {advisory} → {finalBand}
+            </p>
+            <p className="mt-0.5 text-[13px] text-urgent-text/90">
+              Triggered: {byAgent.safety.output.safety_triggers.join(", ")}
+            </p>
+            <p className="mt-1 text-xs text-urgent-text/70">
+              The LLM explains. Deterministic rules decide.
+            </p>
+          </div>
         </div>
       )}
     </section>

@@ -24,36 +24,37 @@ const FITZPATRICK = [
   [6, "#5b3a26", "Type 6 — never burns, deeply pigmented"],
 ];
 
+const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
+
 function YesNo({ label, value, onChange }) {
   // value: true | false | null (null = not answered yet — answering is
   // required, so a worker cannot accidentally submit all-"No").
   const unanswered = value !== true && value !== false;
   return (
-    <div
-      className={`rounded-xl border-2 bg-white p-3 ${
-        unanswered ? "border-slate-200" : "border-slate-300"
-      }`}
-    >
-      <p className="text-sm font-medium text-slate-700">
+    <div className="card p-3.5">
+      <p className="text-[13px] font-medium leading-snug text-ink">
         {label}
         {unanswered && (
-          <span className="ml-1 align-middle text-xs font-normal text-slate-400">
-            (choose one)
-          </span>
+          <span className="ml-1.5 text-xs font-normal text-ink-faint">(choose one)</span>
         )}
       </p>
-      <div className="mt-2 grid grid-cols-2 gap-2" role="radiogroup" aria-label={label}>
+      <div
+        className="mt-2.5 grid grid-cols-2 gap-px overflow-hidden rounded-md border border-line-strong bg-line-strong"
+        role="radiogroup"
+        aria-label={label}
+      >
         <button
           type="button"
           role="radio"
           aria-checked={value === true}
           onClick={() => onChange(true)}
-          className={`min-h-[44px] rounded-lg border-2 px-3 py-2 text-sm font-semibold transition ${
+          className={`flex h-10 items-center justify-center gap-1.5 text-sm font-medium transition-colors duration-150 ${
             value === true
-              ? "border-red-500 bg-red-500 text-white"
-              : "border-slate-200 bg-white text-slate-600 hover:border-red-300 hover:bg-red-50"
+              ? "bg-urgent-bg text-urgent-text"
+              : "bg-white text-ink-secondary hover:bg-stone-50"
           }`}
         >
+          {value === true && <span className="h-1.5 w-1.5 rounded-full bg-urgent-dot" />}
           Yes
         </button>
         <button
@@ -61,12 +62,13 @@ function YesNo({ label, value, onChange }) {
           role="radio"
           aria-checked={value === false}
           onClick={() => onChange(false)}
-          className={`min-h-[44px] rounded-lg border-2 px-3 py-2 text-sm font-semibold transition ${
+          className={`flex h-10 items-center justify-center gap-1.5 text-sm font-medium transition-colors duration-150 ${
             value === false
-              ? "border-emerald-600 bg-emerald-600 text-white"
-              : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:bg-emerald-50"
+              ? "bg-ok-bg text-ok-text"
+              : "bg-white text-ink-secondary hover:bg-stone-50"
           }`}
         >
+          {value === false && <span className="h-1.5 w-1.5 rounded-full bg-ok-dot" />}
           No
         </button>
       </div>
@@ -76,16 +78,20 @@ function YesNo({ label, value, onChange }) {
 
 export default function Questionnaire({ value, onChange }) {
   const set = (field, v) => onChange({ ...value, [field]: v });
+  const selectedFitz = FITZPATRICK.find(([n]) => n === value.fitzpatrick);
 
   return (
     <section aria-labelledby="questions-heading" className="space-y-4">
-      <h2 id="questions-heading" className="text-lg font-semibold text-slate-800">
-        2. Patient history <span className="font-normal text-slate-500">(8 quick questions)</span>
-      </h2>
+      <div>
+        <h2 id="questions-heading" className="text-base font-semibold tracking-tight text-ink">
+          Patient history
+        </h2>
+        <p className="text-[13px] text-ink-muted">Eight quick questions</p>
+      </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="block rounded-lg border border-slate-200 bg-white p-3">
-          <span className="text-sm font-medium text-slate-700">Age (years)</span>
+        <label className="block">
+          <span className="mb-1.5 block text-[13px] font-medium text-ink">Age (years)</span>
           <input
             type="number"
             min="0"
@@ -93,12 +99,12 @@ export default function Questionnaire({ value, onChange }) {
             required
             value={value.age}
             onChange={(e) => set("age", e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="input"
           />
         </label>
 
-        <label className="block rounded-lg border border-slate-200 bg-white p-3">
-          <span className="text-sm font-medium text-slate-700">
+        <label className="block">
+          <span className="mb-1.5 block text-[13px] font-medium text-ink">
             How many months has it been there?
           </span>
           <input
@@ -108,16 +114,18 @@ export default function Questionnaire({ value, onChange }) {
             required
             value={value.duration_months}
             onChange={(e) => set("duration_months", e.target.value)}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+            className="input"
           />
         </label>
       </div>
 
-      <fieldset className="rounded-lg border border-slate-200 bg-white p-3">
-        <legend className="px-1 text-sm font-medium text-slate-700">
-          Skin type (Fitzpatrick 1–6)
-        </legend>
-        <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Fitzpatrick skin type">
+      <div>
+        <p className="mb-1.5 text-[13px] font-medium text-ink">Skin type (Fitzpatrick 1–6)</p>
+        <div
+          className="grid grid-cols-6 gap-px overflow-hidden rounded-md border border-line-strong bg-line-strong"
+          role="radiogroup"
+          aria-label="Fitzpatrick skin type"
+        >
           {FITZPATRICK.map(([n, hex, desc]) => (
             <button
               key={n}
@@ -126,29 +134,40 @@ export default function Questionnaire({ value, onChange }) {
               aria-checked={value.fitzpatrick === n}
               aria-label={desc}
               onClick={() => set("fitzpatrick", n)}
-              className={`flex min-h-[44px] items-center gap-2 rounded-lg border p-2 text-left text-xs ${
+              className={`flex h-12 flex-col items-center justify-center gap-1 transition-colors duration-150 ${
                 value.fitzpatrick === n
-                  ? "border-blue-600 ring-2 ring-blue-300"
-                  : "border-slate-300 hover:bg-slate-50"
+                  ? "bg-brand-50 ring-1 ring-inset ring-brand-500"
+                  : "bg-white hover:bg-stone-50"
               }`}
             >
               <span
                 aria-hidden="true"
-                className="h-6 w-6 shrink-0 rounded-full border border-slate-400"
+                className="h-4 w-4 rounded-full border border-black/10"
                 style={{ backgroundColor: hex }}
               />
-              <span className="text-slate-700">{desc}</span>
+              <span
+                className={`text-[11px] font-semibold ${
+                  value.fitzpatrick === n ? "text-brand-700" : "text-ink-muted"
+                }`}
+              >
+                {ROMAN[n - 1]}
+              </span>
             </button>
           ))}
         </div>
-      </fieldset>
+        {selectedFitz && (
+          <p className="mt-1.5 text-xs text-ink-muted">{selectedFitz[2]}</p>
+        )}
+      </div>
 
-      <label className="block rounded-lg border border-slate-200 bg-white p-3">
-        <span className="text-sm font-medium text-slate-700">Where on the body is it?</span>
+      <label className="block">
+        <span className="mb-1.5 block text-[13px] font-medium text-ink">
+          Where on the body is it?
+        </span>
         <select
           value={value.body_site}
           onChange={(e) => set("body_site", e.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+          className="input"
         >
           {BODY_SITES.map(([v, label]) => (
             <option key={v} value={v}>
