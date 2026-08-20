@@ -1,4 +1,4 @@
-# DermaTriage
+# SkinSight
 
 Multi-agent skin-lesion **triage support** for community health workers,
 ASHA workers, and primary-health-centre staff. Takes one lesion photograph
@@ -7,7 +7,7 @@ recommendation** — how soon professional assessment should happen.
 
 > **This is not a diagnosis. Only a doctor can tell you what it is.**
 
-## What DermaTriage is — and is not
+## What SkinSight is — and is not
 
 | It is | It is not |
 | --- | --- |
@@ -259,7 +259,7 @@ evaluated** (no committed weights, no committed metrics).
 
 ## Domain-gap limitation (major)
 
-HAM10000 is dermatoscopic imagery; DermaTriage receives ordinary
+HAM10000 is dermatoscopic imagery; SkinSight receives ordinary
 smartphone photos. Benchmark performance does **not** transfer directly to
 field smartphone photography.
 
@@ -278,7 +278,7 @@ CC BY-NC-SA 4.0 non-commercial/share-alike restriction.
 
 ## Medical disclaimer
 
-DermaTriage is a hackathon research prototype for triage support. It is
+SkinSight is a hackathon research prototype for triage support. It is
 not a medical device, is not clinically validated, must not be used for
 autonomous diagnosis, and is not a substitute for professional medical
 care. **This is not a diagnosis. Only a doctor can tell you what it is.**

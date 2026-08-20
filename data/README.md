@@ -49,7 +49,7 @@ with incompatible labels without a documented mapping.
 
 ## Domain gap — read this
 
-HAM10000 is dermatoscopic imagery; DermaTriage receives ordinary smartphone
+HAM10000 is dermatoscopic imagery; SkinSight receives ordinary smartphone
 photos. Benchmark performance does NOT directly transfer to field
 smartphone photography. This is a major, documented limitation of the
 prototype.

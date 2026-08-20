@@ -42,7 +42,7 @@ function ReferralSlip({ result, band }) {
     <div id="referral-slip">
       <div style={{ borderBottom: "3px solid #000", paddingBottom: 8 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>
-          DermaTriage — Referral Slip
+          SkinSight — Referral Slip
         </h1>
         <p style={{ fontSize: 11 }}>
           Triage-support prototype · NOT a diagnosis · NOT a medical device

@@ -1,4 +1,4 @@
-# DermaTriage backend dependencies.
+# SkinSight backend dependencies.
 #
 # IMPORTANT — install PyTorch FIRST with the CUDA build matching your GPU
 # (RTX 5050-class Blackwell needs CUDA 12.8 wheels):

@@ -1,4 +1,4 @@
-"""DermaTriage agents.
+"""SkinSight agents.
 
 Five bounded agents:
   ingestion  — image quality gate + graph routing decision

@@ -34,7 +34,7 @@ export default function Layout() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3">
           <Link to="/" className="flex items-center gap-2">
             <span aria-hidden="true" className="text-2xl">🩺</span>
-            <span className="text-lg font-bold text-white">DermaTriage</span>
+            <span className="text-lg font-bold text-white">SkinSight</span>
             <span className="hidden rounded-full border border-slate-600 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400 sm:inline">
               Prototype
             </span>

@@ -1,4 +1,4 @@
-"""Pydantic v2 data contracts shared by every DermaTriage agent.
+"""Pydantic v2 data contracts shared by every SkinSight agent.
 
 These models are the only way data moves between graph nodes. Every agent
 receives a `CaseState` and returns a `CaseState`; the LangGraph wiring in

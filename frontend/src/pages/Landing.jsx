@@ -31,7 +31,7 @@ export default function Landing() {
               doctor — never guess what it is.
             </h1>
             <p className="mt-4 text-lg text-slate-300">
-              DermaTriage helps community health workers turn one lesion
+              SkinSight helps community health workers turn one lesion
               photograph and eight quick questions into a clear urgency
               recommendation. Five AI agents analyse the case — and a
               deterministic safety engine, not the AI, always makes the final

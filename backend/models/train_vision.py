@@ -1,4 +1,4 @@
-"""Train EfficientNet-B0 on HAM10000 for DermaTriage's vision agent.
+"""Train EfficientNet-B0 on HAM10000 for SkinSight's vision agent.
 
 Intended to run on a capable training environment (e.g. Colab GPU); the
 resulting checkpoint is copied to backend/models/weights/ for local

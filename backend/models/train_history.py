@@ -1,4 +1,4 @@
-"""Train the XGBoost structured-history model for DermaTriage.
+"""Train the XGBoost structured-history model for SkinSight.
 
 IMPORTANT — SYNTHETIC DATA NOTICE
 HAM10000 does not contain the eight questionnaire variables this model

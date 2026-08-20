@@ -55,7 +55,7 @@ def _safety_node(state: CaseState) -> dict:
 
 
 def build_graph():
-    """Compile the five-node DermaTriage graph."""
+    """Compile the five-node SkinSight graph."""
     g = StateGraph(CaseState)
     g.add_node("ingest", _ingest_node)
     g.add_node("vision", _vision_node)

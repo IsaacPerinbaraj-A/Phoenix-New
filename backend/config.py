@@ -1,4 +1,4 @@
-"""Central configuration for DermaTriage.
+"""Central configuration for SkinSight.
 
 All tunable constants live here so no agent hides magic values.
 None of the thresholds below are clinically validated; they are

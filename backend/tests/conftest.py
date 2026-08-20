@@ -1,4 +1,4 @@
-"""Shared fixtures and case builders for the DermaTriage test suite."""
+"""Shared fixtures and case builders for the SkinSight test suite."""
 
 import sys
 from pathlib import Path

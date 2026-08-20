@@ -1,4 +1,4 @@
-"""FastAPI backend for DermaTriage.
+"""FastAPI backend for SkinSight.
 
 Endpoints:
     POST /api/assess              submit a case, stream per-agent SSE events
@@ -48,20 +48,20 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
-logger = logging.getLogger("dermatriage.api")
+logger = logging.getLogger("skinsight.api")
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     ensure_runtime_dirs()
     db.init_db()
     db.ensure_demo_clinician()
-    logger.info("DermaTriage API started (reasoning model: %s).", OLLAMA_MODEL)
+    logger.info("SkinSight API started (reasoning model: %s).", OLLAMA_MODEL)
     yield
 
 
 app = FastAPI(
     lifespan=_lifespan,
-    title="DermaTriage",
+    title="SkinSight",
     description=(
         "Triage-support prototype. NOT a diagnostic system, NOT a medical "
         "device, NOT clinically validated. The LLM explains; deterministic "

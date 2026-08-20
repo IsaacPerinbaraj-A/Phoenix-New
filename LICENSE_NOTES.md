@@ -1,6 +1,6 @@
 # Licence notes
 
-Provenance of the components DermaTriage builds on:
+Provenance of the components SkinSight builds on:
 
 | Component | Licence |
 | --- | --- |

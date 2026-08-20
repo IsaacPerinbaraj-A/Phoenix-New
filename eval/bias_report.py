@@ -1,4 +1,4 @@
-"""Fairness / bias reporting scaffold for the DermaTriage vision model.
+"""Fairness / bias reporting scaffold for the SkinSight vision model.
 
 Goal: per-Fitzpatrick-group performance (malignant recall, balanced
 accuracy) using a dataset that actually carries skin-type labels
