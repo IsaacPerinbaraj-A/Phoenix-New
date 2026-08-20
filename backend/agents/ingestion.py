@@ -107,6 +107,35 @@ def evaluate_image(img) -> tuple[bool, str | None]:
     return True, None
 
 
+def evaluate_image_full(img) -> tuple[bool, str | None]:
+    """The cheap quality gate plus the deep distribution gate.
+
+    The OOD check only runs when the trained model and its stats exist;
+    when the gate is inactive images pass through unchanged (it never
+    fabricates a rejection)."""
+    ok, note = evaluate_image(img)
+    if not ok:
+        return ok, note
+    try:
+        from agents.ood import check_image  # lazy: heavy deps optional
+
+        verdict = check_image(img)
+    except Exception:
+        logger.exception("OOD gate errored; skipping it.")
+        verdict = None
+    if verdict is not None:
+        in_distribution, similarity = verdict
+        if not in_distribution:
+            logger.info("Image rejected by OOD gate (sim=%.4f).", similarity)
+            return False, (
+                "This photograph does not resemble the close-up lesion "
+                "images the analysis model was trained on. Please take a "
+                "close-up photo of the lesion, filling the frame with the "
+                "lesion and surrounding skin."
+            )
+    return True, None
+
+
 def cv2_available() -> bool:
     return _CV2_AVAILABLE
 
@@ -131,7 +160,7 @@ def ingestion_agent(state: CaseState) -> CaseState:
     except Exception:
         img = None
 
-    state.image_ok, state.quality_note = evaluate_image(img)
+    state.image_ok, state.quality_note = evaluate_image_full(img)
     if not state.image_ok:
         logger.info(
             "Image rejected for case %s: %s", state.case_id, state.quality_note

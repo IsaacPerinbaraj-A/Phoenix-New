@@ -251,7 +251,7 @@ def precheck_image(image: UploadFile = File(...)):
     so the worker can retake it early. Nothing is stored. The pipeline's
     own ingestion agent remains the authoritative gate at assess time."""
     data, _ext = _read_validated_upload(image)
-    from agents.ingestion import cv2_available, evaluate_image
+    from agents.ingestion import cv2_available, evaluate_image_full
 
     if not cv2_available():
         return {"checked": False, "image_ok": None, "quality_note": None}
@@ -262,7 +262,7 @@ def precheck_image(image: UploadFile = File(...)):
         img = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     except Exception:
         img = None
-    ok, note = evaluate_image(img)
+    ok, note = evaluate_image_full(img)
     return {"checked": True, "image_ok": ok, "quality_note": note}
 
 
@@ -518,12 +518,15 @@ def model_info():
 
 @app.get("/api/health")
 def health():
+    from agents.ood import ood_available
+
     return {
         "status": "ok",
         "ollama": ollama_available(),
         "ollama_model": OLLAMA_MODEL,
         "vision_model": vision_model_available(),
         "history_model": history_model_available(),
+        "ood_gate": ood_available(),
         # Safety has no model or network dependency: available whenever
         # the application itself is running.
         "safety": True,

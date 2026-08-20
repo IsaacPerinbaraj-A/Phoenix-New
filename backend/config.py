@@ -21,6 +21,17 @@ DB_PATH = RUNTIME_DIR / "dermatriage.sqlite3"
 VISION_WEIGHTS_PATH = WEIGHTS_DIR / "effnet_b0_ham10000.pt"
 HISTORY_WEIGHTS_PATH = WEIGHTS_DIR / "xgb_history.json"
 
+# Out-of-distribution gate: per-class mean embeddings of the training set
+# plus an acceptance threshold, produced by
+# backend/models/compute_ood_stats.py. When the file (or the vision model)
+# is absent the gate is inactive and images pass through unchanged.
+OOD_STATS_PATH = WEIGHTS_DIR / "ood_stats.npz"
+# Optional runtime override of the stored threshold (0..1 cosine
+# similarity). Lower = more permissive. Useful because HAM10000 is
+# dermatoscopic and genuine smartphone field photos sit further from the
+# training distribution.
+OOD_MIN_SIMILARITY_ENV = "DERMATRIAGE_OOD_MIN_SIMILARITY"
+
 
 def ensure_runtime_dirs() -> None:
     """Create runtime directories on demand (never at import of agents)."""

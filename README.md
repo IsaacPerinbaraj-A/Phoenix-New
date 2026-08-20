@@ -193,7 +193,18 @@ python backend/models/train_vision.py --data-dir data/ham10000 --epochs 15
 
 # History (CPU is fine; uses SYNTHETIC questionnaires — see the script header)
 python backend/models/train_history.py --data-dir data/ham10000
+
+# Distribution gate (AFTER vision training): embeds the training set and
+# stores per-class means + threshold; once ood_stats.npz exists, uploads
+# that do not resemble the training distribution are rejected at ingestion.
+python backend/models/compute_ood_stats.py --data-dir data/ham10000
 ```
+
+The distribution gate is inherently strict because HAM10000 is
+dermatoscopic; if genuine smartphone field photos are rejected too often,
+loosen it at runtime with `DERMATRIAGE_OOD_MIN_SIMILARITY` (e.g. `0.5`)
+or recompute with a lower `--percentile`. An inactive gate (no stats
+file) never rejects anything; `/api/health` reports it as `ood_gate`.
 
 Both split by `lesion_id` (never image index — HAM10000 has multiple
 images per lesion), use seed 42, and headline malignant recall / balanced
